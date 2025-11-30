@@ -8,8 +8,8 @@ const Header = () => {
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <NavLink to="/" className="text-2xl font-bold tracking-tight">
-            <span className="text-foreground">game</span>
-            <span className="text-primary">sense</span>
+            <span className="text-foreground">godesent</span>
+            <span className="text-muted-foreground">.win</span>
           </NavLink>
           
           <nav className="flex items-center gap-6">
