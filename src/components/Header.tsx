@@ -1,7 +1,8 @@
-import { Bell, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { NavLink } from "./NavLink";
 import { Button } from "./ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import NotificationBell from "./NotificationBell";
 
 const Header = () => {
   const { user, signOut, isAdmin } = useAuth();
@@ -18,15 +19,14 @@ const Header = () => {
           <nav className="flex items-center gap-4 md:gap-6">
             {user ? (
               <>
-                <Button variant="ghost" size="icon" className="hover:bg-secondary">
-                  <Bell className="h-5 w-5" />
-                </Button>
+                <NotificationBell />
                 
-                <NavLink 
-                  to="/forum" 
-                  className="text-foreground hover:text-primary transition-colors"
-                >
+                <NavLink to="/forum" className="text-foreground hover:text-primary transition-colors">
                   Forum
+                </NavLink>
+                
+                <NavLink to="/support" className="text-foreground hover:text-primary transition-colors">
+                  Support
                 </NavLink>
                 
                 {isAdmin && (

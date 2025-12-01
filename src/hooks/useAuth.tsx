@@ -69,12 +69,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: codeData, error: codeError } = await supabase
       .from('invitation_codes')
       .select('*')
-      .eq('code', invitationCode)
+      .eq('key', invitationCode)
       .is('used_by', null)
       .maybeSingle();
 
     if (codeError || !codeData) {
-      return { error: { message: 'Invalid or already used invitation code' } };
+      return { error: { message: 'Invalid or already used invitation key' } };
     }
 
     // Create user
@@ -97,7 +97,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       await supabase
         .from('invitation_codes')
         .update({ used_by: data.user.id, used_at: new Date().toISOString() })
-        .eq('code', invitationCode);
+        .eq('key', invitationCode);
 
       // If username is sandro with invitation code 411, make them admin
       if (username === 'sandro' && invitationCode === '411') {
