@@ -136,11 +136,11 @@ const Register = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="invitation-code" className="text-foreground">Invitation Code</Label>
+              <Label htmlFor="invitation-code" className="text-foreground">Invitation Key</Label>
               <Input 
                 id="invitation-code" 
                 type="text" 
-                placeholder="Enter invitation code"
+                placeholder="Enter invitation key (e.g., Godsent-XXXX-XXXX-XXXX-XXXX)"
                 value={invitationCode}
                 onChange={(e) => setInvitationCode(e.target.value)}
                 className="bg-secondary border-border text-foreground"

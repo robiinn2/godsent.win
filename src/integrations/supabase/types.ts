@@ -16,22 +16,31 @@ export type Database = {
     Tables: {
       banned_users: {
         Row: {
+          ban_type: string | null
           banned_at: string | null
           banned_by: string | null
+          banned_by_username: string | null
           reason: string | null
           user_id: string
+          wipe_date: string | null
         }
         Insert: {
+          ban_type?: string | null
           banned_at?: string | null
           banned_by?: string | null
+          banned_by_username?: string | null
           reason?: string | null
           user_id: string
+          wipe_date?: string | null
         }
         Update: {
+          ban_type?: string | null
           banned_at?: string | null
           banned_by?: string | null
+          banned_by_username?: string | null
           reason?: string | null
           user_id?: string
+          wipe_date?: string | null
         }
         Relationships: []
       }
@@ -61,21 +70,73 @@ export type Database = {
       }
       invitation_codes: {
         Row: {
-          code: string
+          created_at: string | null
+          created_by: string | null
+          key: string
           used_at: string | null
           used_by: string | null
         }
         Insert: {
-          code: string
+          created_at?: string | null
+          created_by?: string | null
+          key: string
           used_at?: string | null
           used_by?: string | null
         }
         Update: {
-          code?: string
+          created_at?: string | null
+          created_by?: string | null
+          key?: string
           used_at?: string | null
           used_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "invitation_codes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string | null
+          read: boolean | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message?: string | null
+          read?: boolean | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string | null
+          read?: boolean | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       posts: {
         Row: {
@@ -121,6 +182,7 @@ export type Database = {
           email: string
           id: string
           name: string
+          pfp_url: string | null
           username: string
         }
         Insert: {
@@ -128,6 +190,7 @@ export type Database = {
           email: string
           id: string
           name: string
+          pfp_url?: string | null
           username: string
         }
         Update: {
@@ -135,9 +198,167 @@ export type Database = {
           email?: string
           id?: string
           name?: string
+          pfp_url?: string | null
           username?: string
         }
         Relationships: []
+      }
+      support_tickets: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string
+          status: string | null
+          subject: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message: string
+          status?: string | null
+          subject: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string
+          status?: string | null
+          subject?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_tickets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ticket_responses: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string
+          responder_id: string
+          ticket_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message: string
+          responder_id: string
+          ticket_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string
+          responder_id?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_responses_responder_id_fkey"
+            columns: ["responder_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_responses_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      update_files: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          file_size: number | null
+          file_url: string
+          filename: string
+          id: string
+          release_date: string | null
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          file_size?: number | null
+          file_url: string
+          filename: string
+          id?: string
+          release_date?: string | null
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          file_size?: number | null
+          file_url?: string
+          filename?: string
+          id?: string
+          release_date?: string | null
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "update_files_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_invitations: {
+        Row: {
+          granted_at: string | null
+          granted_by: string | null
+          id: string
+          invites_remaining: number | null
+          user_id: string
+        }
+        Insert: {
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          invites_remaining?: number | null
+          user_id: string
+        }
+        Update: {
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          invites_remaining?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_invitations_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_invitations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
