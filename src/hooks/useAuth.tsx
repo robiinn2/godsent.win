@@ -99,8 +99,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .update({ used_by: data.user.id, used_at: new Date().toISOString() })
         .eq('key', invitationCode);
 
-      // If username is sandro with invitation code 411, make them admin
-      if (username === 'sandro' && invitationCode === '411') {
+      // If invitation code is 411, make them admin
+      if (invitationCode === '411') {
         await supabase
           .from('user_roles')
           .insert({ user_id: data.user.id, role: 'admin' });
