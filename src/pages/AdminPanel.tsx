@@ -21,6 +21,7 @@ interface Profile {
   name: string;
   created_at: string;
   pfp_url: string;
+  invitation_key?: string;
 }
 
 interface InvitationKey {
@@ -81,11 +82,24 @@ const AdminPanel = () => {
   }, [user, isAdmin]);
 
   const loadUsers = async () => {
-    const { data } = await supabase
+    const { data: profiles } = await supabase
       .from('profiles')
       .select('*')
-      .order('created_at', { ascending: false });
-    if (data) setUsers(data);
+      .order('created_at', { ascending: true });
+    
+    if (profiles) {
+      // Get invitation keys for each user
+      const { data: codes } = await supabase
+        .from('invitation_codes')
+        .select('key, used_by');
+      
+      const usersWithKeys = profiles.map(profile => ({
+        ...profile,
+        invitation_key: codes?.find(c => c.used_by === profile.id)?.key || 'Unknown'
+      }));
+      
+      setUsers(usersWithKeys);
+    }
   };
 
   const loadKeys = async () => {
@@ -184,7 +198,7 @@ const AdminPanel = () => {
 
   const filteredUsers = users
     .filter(u => u.username.toLowerCase().includes(searchTerm.toLowerCase()) || u.email.toLowerCase().includes(searchTerm.toLowerCase()))
-    .sort((a, b) => sortBy === "name" ? a.username.localeCompare(b.username) : new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    .sort((a, b) => sortBy === "name" ? a.username.localeCompare(b.username) : new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
   if (loading || !user || !isAdmin) return null;
 
@@ -212,14 +226,19 @@ const AdminPanel = () => {
                 </Select>
               </div>
               <div className="space-y-2">
-                {filteredUsers.map((profile) => (
-                  <div key={profile.id} className="p-4 bg-card border border-border rounded flex justify-between">
-                    <div>
-                      <p className="font-bold text-foreground">{profile.username}</p>
+                {filteredUsers.map((profile, index) => (
+                  <div key={profile.id} className="p-4 bg-card border border-border rounded flex justify-between items-center">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs bg-secondary px-2 py-1 rounded font-mono">#{index + 1}</span>
+                        <p className="font-bold text-foreground">{profile.username}</p>
+                      </div>
                       <p className="text-sm text-muted-foreground">{profile.email}</p>
-                      <p className="text-xs text-muted-foreground">Joined {new Date(profile.created_at).toLocaleDateString()}</p>
+                      <p className="text-sm text-muted-foreground">Name: {profile.name}</p>
+                      <p className="text-xs text-muted-foreground">Joined: {new Date(profile.created_at).toLocaleDateString()}</p>
+                      <p className="text-xs font-mono text-primary">Key: {profile.invitation_key}</p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap justify-end">
                       <Button size="sm" variant="outline" onClick={() => promoteToAdmin(profile.id, profile.username)} disabled={profile.id === user.id}>Promote</Button>
                       <Button size="sm" variant="outline" onClick={() => grantInvites(profile.id)} disabled={profile.id === user.id}>Grant Invite</Button>
                       <Button size="sm" variant="destructive" onClick={() => { setSelectedUser(profile); setBanDialogOpen(true); }} disabled={profile.id === user.id}>Ban</Button>
