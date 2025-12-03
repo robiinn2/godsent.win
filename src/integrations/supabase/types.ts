@@ -383,6 +383,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      assign_admin_role_for_key: {
+        Args: { p_invitation_code: string; p_user_id: string }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
