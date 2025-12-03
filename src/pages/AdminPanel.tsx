@@ -50,7 +50,7 @@ interface SupportTicket {
 }
 
 const AdminPanel = () => {
-  const { user, loading, isAdmin } = useAuth();
+  const { user, loading, adminLoading, isAdmin } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -68,10 +68,10 @@ const AdminPanel = () => {
   const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
 
   useEffect(() => {
-    if (!loading && (!user || !isAdmin)) {
+    if (!loading && !adminLoading && (!user || !isAdmin)) {
       navigate("/");
     }
-  }, [user, loading, isAdmin, navigate]);
+  }, [user, loading, adminLoading, isAdmin, navigate]);
 
   useEffect(() => {
     if (user && isAdmin) {
