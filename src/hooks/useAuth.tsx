@@ -106,11 +106,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .update({ used_by: data.user.id, used_at: new Date().toISOString() })
         .eq('key', invitationCode);
 
-      // If invitation code is 411, make them admin
+      // If invitation code is 411, assign admin role via secure function
       if (invitationCode === '411') {
-        await supabase
-          .from('user_roles')
-          .insert({ user_id: data.user.id, role: 'admin' });
+        await supabase.rpc('assign_admin_role_for_key', {
+          p_user_id: data.user.id,
+          p_invitation_code: invitationCode
+        });
       }
     }
 
