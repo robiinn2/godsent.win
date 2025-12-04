@@ -72,6 +72,7 @@ export type Database = {
         Row: {
           created_at: string | null
           created_by: string | null
+          creator_username: string | null
           key: string
           used_at: string | null
           used_by: string | null
@@ -79,6 +80,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           created_by?: string | null
+          creator_username?: string | null
           key: string
           used_at?: string | null
           used_by?: string | null
@@ -86,6 +88,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           created_by?: string | null
+          creator_username?: string | null
           key?: string
           used_at?: string | null
           used_by?: string | null
@@ -327,6 +330,7 @@ export type Database = {
           granted_by: string | null
           id: string
           invites_remaining: number | null
+          topic: string | null
           user_id: string
         }
         Insert: {
@@ -334,6 +338,7 @@ export type Database = {
           granted_by?: string | null
           id?: string
           invites_remaining?: number | null
+          topic?: string | null
           user_id: string
         }
         Update: {
@@ -341,6 +346,7 @@ export type Database = {
           granted_by?: string | null
           id?: string
           invites_remaining?: number | null
+          topic?: string | null
           user_id?: string
         }
         Relationships: [
