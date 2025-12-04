@@ -387,6 +387,7 @@ export type Database = {
         Args: { p_invitation_code: string; p_user_id: string }
         Returns: undefined
       }
+      get_email_by_username: { Args: { p_username: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
