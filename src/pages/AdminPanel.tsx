@@ -31,6 +31,16 @@ interface InvitationKey {
   created_at: string;
   used_by: string | null;
   used_at: string | null;
+  creator_username: string | null;
+}
+
+interface UserGrant {
+  id: string;
+  user_id: string;
+  invites_remaining: number;
+  granted_at: string;
+  granted_by: string;
+  username?: string;
 }
 
 interface SupportTicket {
@@ -59,6 +69,7 @@ const AdminPanel = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<"name" | "date">("date");
   const [keys, setKeys] = useState<InvitationKey[]>([]);
+  const [userGrants, setUserGrants] = useState<UserGrant[]>([]);
   const [generating, setGenerating] = useState(false);
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
@@ -78,6 +89,7 @@ const AdminPanel = () => {
     if (user && isAdmin) {
       loadUsers();
       loadKeys();
+      loadUserGrants();
       loadTickets();
     }
   }, [user, isAdmin]);
@@ -124,6 +136,27 @@ const AdminPanel = () => {
     if (data) setKeys(data);
   };
 
+  const loadUserGrants = async () => {
+    const { data: grants } = await supabase
+      .from('user_invitations')
+      .select('*')
+      .order('granted_at', { ascending: false });
+    
+    if (grants) {
+      // Get usernames for each grant
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, username');
+      
+      const grantsWithUsernames = grants.map(g => ({
+        ...g,
+        username: profiles?.find(p => p.id === g.user_id)?.username || 'Unknown'
+      }));
+      
+      setUserGrants(grantsWithUsernames);
+    }
+  };
+
   const loadTickets = async () => {
     const { data } = await supabase
       .from('support_tickets')
@@ -134,12 +167,24 @@ const AdminPanel = () => {
 
   const generateKey = async () => {
     setGenerating(true);
+    
+    // Get current user's username
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('username')
+      .eq('id', user!.id)
+      .single();
+    
     const randomChars = () => Array.from({ length: 4 }, () => 
       'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[Math.floor(Math.random() * 36)]
     ).join('');
     const newKey = `Godsent-${randomChars()}-${randomChars()}-${randomChars()}-${randomChars()}`;
     
-    await supabase.from('invitation_codes').insert({ key: newKey, created_by: user!.id });
+    await supabase.from('invitation_codes').insert({ 
+      key: newKey, 
+      created_by: user!.id,
+      creator_username: profile?.username || 'Admin'
+    });
     toast({ title: "Success", description: `Key: ${newKey}` });
     loadKeys();
     setGenerating(false);
@@ -175,13 +220,23 @@ const AdminPanel = () => {
     loadUsers();
   };
 
-  const grantInvites = async (userId: string) => {
+  const grantInvites = async (userId: string, username: string) => {
     await supabase.from('user_invitations').insert({
       user_id: userId,
       invites_remaining: 1,
       granted_by: user!.id,
     });
-    toast({ title: "Success", description: "Granted 1 invite" });
+    
+    // Send notification to the user
+    await supabase.from('notifications').insert({
+      user_id: userId,
+      type: 'invite_granted',
+      title: 'Invite Granted',
+      message: 'You have been granted 1 invitation! Click to create your key.',
+    });
+    
+    toast({ title: "Success", description: `Granted 1 invite to ${username}` });
+    loadUserGrants();
   };
 
   const promoteUser = async (userId: string, username: string, currentRole: 'user' | 'elder' | 'admin') => {
@@ -273,7 +328,7 @@ const AdminPanel = () => {
                       <Button size="sm" variant="outline" onClick={() => promoteUser(profile.id, profile.username, profile.role || 'user')} disabled={profile.id === user.id || profile.role === 'admin'}>
                         {profile.role === 'user' ? 'Promote to Elder' : profile.role === 'elder' ? 'Promote to Admin' : 'Max Rank'}
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => grantInvites(profile.id)} disabled={profile.id === user.id}>Grant Invite</Button>
+                      <Button size="sm" variant="outline" onClick={() => grantInvites(profile.id, profile.username)} disabled={profile.id === user.id}>Grant Invite</Button>
                       <Button size="sm" variant="destructive" onClick={() => { setSelectedUser(profile); setBanDialogOpen(true); }} disabled={profile.id === user.id}>Ban</Button>
                       <Button size="sm" variant="destructive" onClick={() => handleTerminateAccount(profile.id, profile.username)} disabled={profile.id === user.id}>Terminate</Button>
                     </div>
@@ -290,12 +345,42 @@ const AdminPanel = () => {
                   Available: {keys.filter(k => !k.used_by).length} | Used: {keys.filter(k => k.used_by).length}
                 </span>
               </div>
+              
+              {/* User Grants Section */}
+              {userGrants.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-foreground mb-3">User Invite Grants</h3>
+                  <div className="space-y-2">
+                    {userGrants.map((grant) => (
+                      <div key={grant.id} className="p-4 bg-card border border-border rounded">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="font-bold text-foreground">{grant.username}</p>
+                            <p className="text-sm text-muted-foreground">User ID: {grant.user_id.slice(0, 8)}...</p>
+                            <p className="text-sm text-muted-foreground">Granted: {new Date(grant.granted_at).toLocaleDateString()}</p>
+                          </div>
+                          <div className="text-right">
+                            <span className={`px-3 py-1 rounded text-sm ${grant.invites_remaining > 0 ? 'bg-green-500/20 text-green-500' : 'bg-muted text-muted-foreground'}`}>
+                              Available: {grant.invites_remaining}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Keys Section */}
+              <h3 className="text-lg font-semibold text-foreground mb-3">Generated Keys</h3>
               <div className="space-y-2">
                 {keys.map((k) => (
                   <div key={k.key} className="p-4 bg-card border border-border rounded flex justify-between items-center">
                     <div>
                       <p className="font-mono font-bold text-foreground">{k.key}</p>
-                      <p className="text-sm text-muted-foreground">Created {new Date(k.created_at).toLocaleDateString()}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Created by: {k.creator_username || 'Admin'} • {new Date(k.created_at).toLocaleDateString()}
+                      </p>
                       {k.used_by && <p className="text-sm text-muted-foreground">Used on {new Date(k.used_at!).toLocaleDateString()}</p>}
                     </div>
                     <div className="flex gap-2">

@@ -2,6 +2,7 @@ import { Bell } from "lucide-react";
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { ScrollArea } from "./ui/scroll-area";
@@ -17,6 +18,7 @@ interface Notification {
 
 const NotificationBell = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -83,6 +85,19 @@ const NotificationBell = () => {
     loadNotifications();
   };
 
+  const handleNotificationClick = async (notif: Notification) => {
+    if (!notif.read) {
+      await markAsRead(notif.id);
+    }
+    
+    // Navigate based on notification type
+    if (notif.type === 'invite_granted') {
+      navigate('/invite');
+    } else if (notif.type === 'ticket_response') {
+      navigate('/support');
+    }
+  };
+
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -115,7 +130,7 @@ const NotificationBell = () => {
                       ? 'bg-secondary/50 border-border' 
                       : 'bg-secondary border-primary'
                   }`}
-                  onClick={() => !notif.read && markAsRead(notif.id)}
+                  onClick={() => handleNotificationClick(notif)}
                 >
                   <p className="font-semibold text-sm text-foreground">{notif.title}</p>
                   {notif.message && (
