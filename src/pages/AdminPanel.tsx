@@ -22,6 +22,7 @@ interface Profile {
   created_at: string;
   pfp_url: string;
   invitation_key?: string;
+  role?: 'user' | 'elder' | 'admin';
 }
 
 interface InvitationKey {
@@ -93,12 +94,25 @@ const AdminPanel = () => {
         .from('invitation_codes')
         .select('key, used_by');
       
-      const usersWithKeys = profiles.map(profile => ({
-        ...profile,
-        invitation_key: codes?.find(c => c.used_by === profile.id)?.key || 'Unknown'
-      }));
+      // Get roles for each user
+      const { data: roles } = await supabase
+        .from('user_roles')
+        .select('user_id, role');
       
-      setUsers(usersWithKeys);
+      const usersWithKeysAndRoles = profiles.map(profile => {
+        const userRoles = roles?.filter(r => r.user_id === profile.id).map(r => r.role) || [];
+        let highestRole: 'user' | 'elder' | 'admin' = 'user';
+        if (userRoles.includes('admin')) highestRole = 'admin';
+        else if (userRoles.includes('elder')) highestRole = 'elder';
+        
+        return {
+          ...profile,
+          invitation_key: codes?.find(c => c.used_by === profile.id)?.key || 'Unknown',
+          role: highestRole
+        };
+      });
+      
+      setUsers(usersWithKeysAndRoles);
     }
   };
 
@@ -170,10 +184,22 @@ const AdminPanel = () => {
     toast({ title: "Success", description: "Granted 1 invite" });
   };
 
-  const promoteToAdmin = async (userId: string, username: string) => {
-    if (!confirm(`Promote ${username} to admin?`)) return;
-    await supabase.from('user_roles').insert({ user_id: userId, role: 'admin' });
-    toast({ title: "Success", description: `${username} promoted` });
+  const promoteUser = async (userId: string, username: string, currentRole: 'user' | 'elder' | 'admin') => {
+    const nextRole = currentRole === 'user' ? 'elder' : currentRole === 'elder' ? 'admin' : null;
+    if (!nextRole) {
+      toast({ title: "Error", description: `${username} is already admin` });
+      return;
+    }
+    if (!confirm(`Promote ${username} to ${nextRole}?`)) return;
+    
+    // Remove current role if not 'user' (user role is default)
+    if (currentRole !== 'user') {
+      await supabase.from('user_roles').delete().eq('user_id', userId).eq('role', currentRole);
+    }
+    
+    await supabase.from('user_roles').insert({ user_id: userId, role: nextRole });
+    toast({ title: "Success", description: `${username} promoted to ${nextRole}` });
+    loadUsers();
   };
 
   const respondToTicket = async () => {
@@ -232,6 +258,11 @@ const AdminPanel = () => {
                       <div className="flex items-center gap-2">
                         <span className="text-xs bg-secondary px-2 py-1 rounded font-mono">#{index + 1}</span>
                         <p className="font-bold text-foreground">{profile.username}</p>
+                        <span className={`text-xs px-2 py-1 rounded capitalize ${
+                          profile.role === 'admin' ? 'bg-red-500/20 text-red-500' : 
+                          profile.role === 'elder' ? 'bg-blue-500/20 text-blue-500' : 
+                          'bg-muted text-muted-foreground'
+                        }`}>{profile.role || 'user'}</span>
                       </div>
                       <p className="text-sm text-muted-foreground">{profile.email}</p>
                       <p className="text-sm text-muted-foreground">Name: {profile.name}</p>
@@ -239,7 +270,9 @@ const AdminPanel = () => {
                       <p className="text-xs font-mono text-primary">Key: {profile.invitation_key}</p>
                     </div>
                     <div className="flex gap-2 flex-wrap justify-end">
-                      <Button size="sm" variant="outline" onClick={() => promoteToAdmin(profile.id, profile.username)} disabled={profile.id === user.id}>Promote</Button>
+                      <Button size="sm" variant="outline" onClick={() => promoteUser(profile.id, profile.username, profile.role || 'user')} disabled={profile.id === user.id || profile.role === 'admin'}>
+                        {profile.role === 'user' ? 'Promote to Elder' : profile.role === 'elder' ? 'Promote to Admin' : 'Max Rank'}
+                      </Button>
                       <Button size="sm" variant="outline" onClick={() => grantInvites(profile.id)} disabled={profile.id === user.id}>Grant Invite</Button>
                       <Button size="sm" variant="destructive" onClick={() => { setSelectedUser(profile); setBanDialogOpen(true); }} disabled={profile.id === user.id}>Ban</Button>
                       <Button size="sm" variant="destructive" onClick={() => handleTerminateAccount(profile.id, profile.username)} disabled={profile.id === user.id}>Terminate</Button>
@@ -251,7 +284,12 @@ const AdminPanel = () => {
           </TabsContent>
           <TabsContent value="keys">
             <InfoCard title="Invitation Keys">
-              <Button onClick={generateKey} disabled={generating} className="mb-4">{generating ? 'Generating...' : 'Generate Key'}</Button>
+              <div className="flex items-center gap-4 mb-4">
+                <Button onClick={generateKey} disabled={generating}>{generating ? 'Generating...' : 'Generate Key'}</Button>
+                <span className="text-sm text-muted-foreground">
+                  Available: {keys.filter(k => !k.used_by).length} | Used: {keys.filter(k => k.used_by).length}
+                </span>
+              </div>
               <div className="space-y-2">
                 {keys.map((k) => (
                   <div key={k.key} className="p-4 bg-card border border-border rounded flex justify-between items-center">
