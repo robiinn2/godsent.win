@@ -301,6 +301,11 @@ const AdminPanel = () => {
     loadTickets();
   };
 
+  // Create a map of user IDs to sequential IDs based on join date
+  const userSequentialIds = new Map<string, number>();
+  [...users].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+    .forEach((u, idx) => userSequentialIds.set(u.id, idx + 1));
+
   const filteredUsers = users
     .filter(u => u.username.toLowerCase().includes(searchTerm.toLowerCase()) || u.email.toLowerCase().includes(searchTerm.toLowerCase()))
     .sort((a, b) => sortBy === "name" ? a.username.localeCompare(b.username) : new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
@@ -335,7 +340,7 @@ const AdminPanel = () => {
                   <div key={profile.id} className="p-4 bg-card border border-border rounded flex justify-between items-center">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs bg-secondary px-2 py-1 rounded font-mono">#{index + 1}</span>
+                        <span className="text-xs bg-secondary px-2 py-1 rounded font-mono">#{userSequentialIds.get(profile.id)}</span>
                         <p className="font-bold text-foreground">{profile.username}</p>
                         <span className={`text-xs px-2 py-1 rounded capitalize ${
                           profile.role === 'admin' ? 'bg-red-500/20 text-red-500' : 
