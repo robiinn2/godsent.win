@@ -32,6 +32,7 @@ interface InvitationKey {
   used_by: string | null;
   used_at: string | null;
   creator_username: string | null;
+  creatorSequentialId?: number;
 }
 
 interface UserGrant {
@@ -41,6 +42,7 @@ interface UserGrant {
   granted_at: string;
   granted_by: string;
   username?: string;
+  userSequentialId?: number;
 }
 
 interface SupportTicket {
@@ -133,7 +135,24 @@ const AdminPanel = () => {
       .from('invitation_codes')
       .select('*')
       .order('created_at', { ascending: false });
-    if (data) setKeys(data);
+    
+    if (data) {
+      // Get all profiles sorted by join date for sequential IDs
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, created_at')
+        .order('created_at', { ascending: true });
+      
+      const keysWithSequentialIds = data.map(k => {
+        const creatorIndex = profiles?.findIndex(p => p.id === k.created_by) ?? -1;
+        return {
+          ...k,
+          creatorSequentialId: creatorIndex >= 0 ? creatorIndex + 1 : 0
+        };
+      });
+      
+      setKeys(keysWithSequentialIds);
+    }
   };
 
   const loadUserGrants = async () => {
@@ -143,15 +162,20 @@ const AdminPanel = () => {
       .order('granted_at', { ascending: false });
     
     if (grants) {
-      // Get usernames for each grant
+      // Get all profiles sorted by join date for sequential IDs
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('id, username');
+        .select('id, username, created_at')
+        .order('created_at', { ascending: true });
       
-      const grantsWithUsernames = grants.map(g => ({
-        ...g,
-        username: profiles?.find(p => p.id === g.user_id)?.username || 'Unknown'
-      }));
+      const grantsWithUsernames = grants.map(g => {
+        const userIndex = profiles?.findIndex(p => p.id === g.user_id) ?? -1;
+        return {
+          ...g,
+          username: profiles?.find(p => p.id === g.user_id)?.username || 'Unknown',
+          userSequentialId: userIndex >= 0 ? userIndex + 1 : 0
+        };
+      });
       
       setUserGrants(grantsWithUsernames);
     }
@@ -355,8 +379,10 @@ const AdminPanel = () => {
                       <div key={grant.id} className="p-4 bg-card border border-border rounded">
                         <div className="flex justify-between items-center">
                           <div>
-                            <p className="font-bold text-foreground">{grant.username}</p>
-                            <p className="text-sm text-muted-foreground">User ID: {grant.user_id.slice(0, 8)}...</p>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs bg-secondary px-2 py-1 rounded font-mono">#{grant.userSequentialId}</span>
+                              <p className="font-bold text-foreground">{grant.username}</p>
+                            </div>
                             <p className="text-sm text-muted-foreground">Granted: {new Date(grant.granted_at).toLocaleDateString()}</p>
                           </div>
                           <div className="text-right">
@@ -379,7 +405,7 @@ const AdminPanel = () => {
                     <div>
                       <p className="font-mono font-bold text-foreground">{k.key}</p>
                       <p className="text-sm text-muted-foreground">
-                        Created by: {k.creator_username || 'Admin'} • {new Date(k.created_at).toLocaleDateString()}
+                        Created by: {k.creator_username || 'Admin'} {k.creatorSequentialId ? `(#${k.creatorSequentialId})` : ''} • {new Date(k.created_at).toLocaleDateString()}
                       </p>
                       {k.used_by && <p className="text-sm text-muted-foreground">Used on {new Date(k.used_at!).toLocaleDateString()}</p>}
                     </div>
