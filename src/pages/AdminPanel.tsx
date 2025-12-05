@@ -340,7 +340,7 @@ const AdminPanel = () => {
                   <div key={profile.id} className="p-4 bg-card border border-border rounded flex justify-between items-center">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs bg-secondary px-2 py-1 rounded font-mono">#{userSequentialIds.get(profile.id)}</span>
+                        <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded font-mono font-bold">ID: {userSequentialIds.get(profile.id)}</span>
                         <p className="font-bold text-foreground">{profile.username}</p>
                         <span className={`text-xs px-2 py-1 rounded capitalize ${
                           profile.role === 'admin' ? 'bg-red-500/20 text-red-500' : 
@@ -348,7 +348,7 @@ const AdminPanel = () => {
                           'bg-muted text-muted-foreground'
                         }`}>{profile.role || 'user'}</span>
                       </div>
-                      <p className="text-sm text-muted-foreground">{profile.email}</p>
+                      <p className="text-sm text-muted-foreground">Email: {profile.email}</p>
                       <p className="text-sm text-muted-foreground">Name: {profile.name}</p>
                       <p className="text-xs text-muted-foreground">Joined: {new Date(profile.created_at).toLocaleDateString()}</p>
                       <p className="text-xs font-mono text-primary">Key: {profile.invitation_key}</p>
