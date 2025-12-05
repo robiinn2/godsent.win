@@ -6,8 +6,6 @@ import InfoCard from "@/components/InfoCard";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 
 interface UserInvitation {
@@ -30,7 +28,6 @@ const Invite = () => {
   
   const [invitation, setInvitation] = useState<UserInvitation | null>(null);
   const [createdKeys, setCreatedKeys] = useState<CreatedKey[]>([]);
-  const [topic, setTopic] = useState("");
   const [generating, setGenerating] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
 
@@ -71,11 +68,6 @@ const Invite = () => {
   };
 
   const generateKey = async () => {
-    if (!topic) {
-      toast({ title: "Error", description: "Please select a topic", variant: "destructive" });
-      return;
-    }
-    
     if (!invitation || invitation.invites_remaining <= 0) {
       toast({ title: "Error", description: "No invites remaining", variant: "destructive" });
       return;
@@ -117,7 +109,6 @@ const Invite = () => {
       .eq('id', invitation.id);
     
     toast({ title: "Success", description: `Key created: ${newKey}` });
-    setTopic("");
     loadInvitationData();
     setGenerating(false);
   };
@@ -146,26 +137,9 @@ const Invite = () => {
               You have <span className="text-primary font-bold">{invitation.invites_remaining}</span> invite(s) remaining.
             </p>
             
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-foreground">Topic *</Label>
-                <Select value={topic} onValueChange={setTopic}>
-                  <SelectTrigger className="bg-secondary">
-                    <SelectValue placeholder="Select a topic..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="issue">Issue</SelectItem>
-                    <SelectItem value="help">Help</SelectItem>
-                    <SelectItem value="questions">Other Questions</SelectItem>
-                    <SelectItem value="presale">Presale</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <Button onClick={generateKey} disabled={generating || !topic}>
-                {generating ? 'Generating...' : 'Generate Invitation Key'}
-              </Button>
-            </div>
+            <Button onClick={generateKey} disabled={generating}>
+              {generating ? 'Generating...' : 'Generate Invitation Key'}
+            </Button>
           </InfoCard>
         ) : (
           <InfoCard title="No Invites Available">
