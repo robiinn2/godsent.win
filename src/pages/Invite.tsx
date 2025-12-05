@@ -68,8 +68,17 @@ const Invite = () => {
   };
 
   const generateKey = async () => {
-    if (!invitation || invitation.invites_remaining <= 0) {
+    // Re-check invites remaining from database to prevent refresh exploits
+    const { data: freshInvite } = await supabase
+      .from('user_invitations')
+      .select('*')
+      .eq('user_id', user!.id)
+      .gt('invites_remaining', 0)
+      .maybeSingle();
+    
+    if (!freshInvite || freshInvite.invites_remaining <= 0) {
       toast({ title: "Error", description: "No invites remaining", variant: "destructive" });
+      setInvitation(null);
       return;
     }
 
@@ -105,8 +114,8 @@ const Invite = () => {
     // Decrement invites remaining
     await supabase
       .from('user_invitations')
-      .update({ invites_remaining: invitation.invites_remaining - 1 })
-      .eq('id', invitation.id);
+      .update({ invites_remaining: freshInvite.invites_remaining - 1 })
+      .eq('id', freshInvite.id);
     
     toast({ title: "Success", description: `Key created: ${newKey}` });
     loadInvitationData();
