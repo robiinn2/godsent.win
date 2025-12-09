@@ -3,9 +3,32 @@ import { NavLink } from "./NavLink";
 import { Button } from "./ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import NotificationBell from "./NotificationBell";
+import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const Header = () => {
   const { user, signOut, isAdmin } = useAuth();
+  const navigate = useNavigate();
+  const [pfpUrl, setPfpUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      loadPfp();
+    }
+  }, [user]);
+
+  const loadPfp = async () => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('pfp_url')
+      .eq('id', user!.id)
+      .single();
+
+    if (data) {
+      setPfpUrl(data.pfp_url);
+    }
+  };
 
   return (
     <header className="bg-card border-b border-border">
@@ -37,6 +60,18 @@ const Header = () => {
                     Admin
                   </NavLink>
                 )}
+                
+                {/* Profile Icon */}
+                <button
+                  onClick={() => navigate('/profile')}
+                  className="w-8 h-8 rounded-full overflow-hidden border border-border hover:border-primary transition-colors"
+                >
+                  <img 
+                    src={pfpUrl || '/default-pfp.png'} 
+                    alt="Profile" 
+                    className="w-full h-full object-cover"
+                  />
+                </button>
                 
                 <Button 
                   variant="ghost" 
