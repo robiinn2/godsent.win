@@ -11,6 +11,7 @@ import Forum from "./pages/Forum";
 import AdminPanel from "./pages/AdminPanel";
 import Support from "./pages/Support";
 import Invite from "./pages/Invite";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/admin" element={<AdminPanel />} />
             <Route path="/support" element={<Support />} />
             <Route path="/invite" element={<Invite />} />
+            <Route path="/profile" element={<Profile />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
