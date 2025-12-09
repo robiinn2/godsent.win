@@ -6,10 +6,16 @@ import InfoCard from "@/components/InfoCard";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Ticket {
   id: string;
@@ -25,13 +31,19 @@ interface Ticket {
   }>;
 }
 
+const SUPPORT_TOPICS = [
+  { value: 'support', label: 'Support' },
+  { value: 'questions', label: 'Questions' },
+  { value: 'presale', label: 'Pre-sale' },
+];
+
 const Support = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [showNewTicket, setShowNewTicket] = useState(false);
-  const [subject, setSubject] = useState("");
+  const [topic, setTopic] = useState("");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -64,16 +76,19 @@ const Support = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!user || !subject || !message) {
+    if (!user || !topic || !message) {
       toast({
         title: "Error",
-        description: "Please fill in all fields",
+        description: "Please select a topic and enter a description",
         variant: "destructive",
       });
       return;
     }
 
     setSubmitting(true);
+
+    const topicLabel = SUPPORT_TOPICS.find(t => t.value === topic)?.label || topic;
+    const subject = `[${topicLabel}] Support Request`;
 
     const { error } = await supabase
       .from('support_tickets')
@@ -96,7 +111,7 @@ const Support = () => {
         title: "Success",
         description: "Support ticket submitted successfully",
       });
-      setSubject("");
+      setTopic("");
       setMessage("");
       setShowNewTicket(false);
       loadTickets();
@@ -141,22 +156,27 @@ const Support = () => {
           {showNewTicket && (
             <form onSubmit={handleSubmit} className="space-y-4 mb-6 p-4 bg-card border border-border rounded">
               <div className="space-y-2">
-                <Label htmlFor="subject">Subject</Label>
-                <Input
-                  id="subject"
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  placeholder="Brief description of your issue"
-                  className="bg-secondary"
-                />
+                <Label htmlFor="topic">Topic</Label>
+                <Select value={topic} onValueChange={setTopic}>
+                  <SelectTrigger className="bg-secondary">
+                    <SelectValue placeholder="Select a topic" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SUPPORT_TOPICS.map((t) => (
+                      <SelectItem key={t.value} value={t.value}>
+                        {t.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="message">Message</Label>
+                <Label htmlFor="message">Description</Label>
                 <Textarea
                   id="message"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Provide details about your issue"
+                  placeholder="Describe your issue or question"
                   rows={5}
                   className="bg-secondary"
                 />

@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { Newspaper, HelpCircle, ArrowUp } from "lucide-react";
 
 interface ForumSection {
   id: string;
@@ -28,6 +29,24 @@ interface Post {
     username: string;
   };
 }
+
+const SECTION_CATEGORIES = {
+  'Information': ['announcements', 'questions'],
+  'Software': ['updates'],
+};
+
+const getSectionIcon = (slug: string) => {
+  switch (slug) {
+    case 'announcements':
+      return <Newspaper className="w-4 h-4" />;
+    case 'questions':
+      return <HelpCircle className="w-4 h-4" />;
+    case 'updates':
+      return <ArrowUp className="w-4 h-4" />;
+    default:
+      return null;
+  }
+};
 
 const Forum = () => {
   const { user, loading, isAdmin } = useAuth();
@@ -180,23 +199,38 @@ const Forum = () => {
           {/* Sections Sidebar */}
           <div className="md:col-span-1">
             <InfoCard title="Forum Sections">
-              <div className="space-y-2">
-                {sections.map((section) => (
-                  <button
-                    key={section.id}
-                    onClick={() => {
-                      setSelectedSection(section);
-                      setShowNewPost(false);
-                    }}
-                    className={`w-full text-left px-4 py-2 rounded transition-colors ${
-                      selectedSection?.id === section.id
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-secondary text-foreground hover:bg-secondary/80'
-                    }`}
-                  >
-                    {section.name}
-                  </button>
-                ))}
+              <div className="space-y-4">
+                {Object.entries(SECTION_CATEGORIES).map(([category, slugs]) => {
+                  const categorySections = sections.filter(s => slugs.includes(s.slug));
+                  if (categorySections.length === 0) return null;
+                  
+                  return (
+                    <div key={category}>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2 px-2">
+                        {category}
+                      </p>
+                      <div className="space-y-1">
+                        {categorySections.map((section) => (
+                          <button
+                            key={section.id}
+                            onClick={() => {
+                              setSelectedSection(section);
+                              setShowNewPost(false);
+                            }}
+                            className={`w-full text-left px-3 py-2 rounded transition-colors flex items-center gap-2 ${
+                              selectedSection?.id === section.id
+                                ? 'bg-primary text-primary-foreground'
+                                : 'text-foreground hover:bg-secondary/80'
+                            }`}
+                          >
+                            {getSectionIcon(section.slug)}
+                            <span>{section.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </InfoCard>
           </div>
