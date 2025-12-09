@@ -133,6 +133,20 @@ const Forum = () => {
   };
 
   const loadPosts = async (sectionId: string) => {
+    // Ensure we have profiles for sequential IDs
+    let profiles = allProfiles;
+    if (profiles.length === 0) {
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('id, created_at')
+        .order('created_at', { ascending: true });
+      
+      if (profileData) {
+        profiles = profileData;
+        setAllProfiles(profileData);
+      }
+    }
+
     const { data, error } = await supabase
       .from('posts')
       .select(`
@@ -152,10 +166,15 @@ const Forum = () => {
 
       const roleMap = new Map(roles?.map(r => [r.user_id, r.role]) || []);
 
+      const getSeqId = (authorId: string) => {
+        const index = profiles.findIndex(p => p.id === authorId);
+        return index + 1;
+      };
+
       const postsWithRoles = data.map((post: any) => ({
         ...post,
         authorRole: roleMap.get(post.author_id) || 'user',
-        authorSequentialId: getSequentialId(post.author_id),
+        authorSequentialId: getSeqId(post.author_id),
       }));
 
       setPosts(postsWithRoles);
