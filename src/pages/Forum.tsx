@@ -348,82 +348,82 @@ const Forum = () => {
                     </form>
                   )}
 
-                  <div className="space-y-4">
+                  <div className="space-y-2">
                     {posts.length === 0 ? (
                       <p className="text-muted-foreground">No posts yet</p>
                     ) : (
                       posts.map((post) => {
-                        const isQuestionsSection = selectedSection?.slug === 'questions';
                         const isExpanded = expandedPosts.has(post.id);
                         
                         return (
                           <div key={post.id} className="bg-card border border-border rounded overflow-hidden">
-                            <div className="flex">
-                              {/* Left side - User info (50% height concept via min-height) */}
-                              <div className="w-32 md:w-40 flex-shrink-0 bg-secondary/50 p-4 flex flex-col items-center justify-start border-r border-border">
-                                {/* Profile Picture */}
-                                <div className="w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden border-2 border-border mb-3">
+                            {/* Compact header row - always visible */}
+                            <button
+                              onClick={() => togglePostExpand(post.id)}
+                              className="w-full flex items-center justify-between px-4 py-3 hover:bg-secondary/50 transition-colors text-left"
+                            >
+                              <div className="flex items-center gap-3 flex-1 min-w-0">
+                                <div className="w-8 h-8 rounded-full overflow-hidden border border-border flex-shrink-0">
                                   <img 
                                     src={post.profiles.pfp_url || '/default-pfp.png'} 
                                     alt={post.profiles.username} 
                                     className="w-full h-full object-cover"
                                   />
                                 </div>
-                                
-                                {/* User Info */}
-                                <div className="text-center space-y-1 w-full">
-                                  <p className="font-bold text-foreground text-sm truncate">{post.profiles.username}</p>
-                                  <p className="text-xs text-muted-foreground">ID: #{post.authorSequentialId || getSequentialId(post.author_id)}</p>
-                                  <p className={`text-xs font-semibold capitalize ${
-                                    post.authorRole === 'admin' ? 'text-red-500' : 
-                                    post.authorRole === 'elder' ? 'text-purple-500' : 
-                                    'text-muted-foreground'
-                                  }`}>{post.authorRole || 'user'}</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {new Date(post.profiles.created_at).toLocaleDateString()}
-                                  </p>
+                                <div className="flex-1 min-w-0">
+                                  <h3 className="font-semibold text-foreground truncate">{post.title}</h3>
                                 </div>
+                                <span className="text-xs text-muted-foreground flex-shrink-0">
+                                  {new Date(post.created_at).toLocaleDateString()}
+                                </span>
                               </div>
-                              
-                              {/* Right side - Post content */}
-                              <div className="flex-1 p-4 flex flex-col">
-                                {/* Header */}
-                                <div className="mb-3">
-                                  <h3 className="text-lg font-bold text-foreground">{post.title}</h3>
-                                  <p className="text-xs text-muted-foreground">
-                                    Posted {new Date(post.created_at).toLocaleString()}
-                                  </p>
-                                </div>
-                                
-                                {/* Content */}
-                                {isQuestionsSection ? (
-                                  <div>
-                                    {isExpanded ? (
-                                      <>
-                                        <p className="text-foreground whitespace-pre-wrap">{post.content}</p>
-                                        <button 
-                                          onClick={() => togglePostExpand(post.id)}
-                                          className="flex items-center gap-1 text-sm text-primary hover:underline mt-3"
-                                        >
-                                          <ChevronUp className="w-4 h-4" />
-                                          Hide content
-                                        </button>
-                                      </>
-                                    ) : (
-                                      <button 
-                                        onClick={() => togglePostExpand(post.id)}
-                                        className="flex items-center gap-1 text-sm text-primary hover:underline"
-                                      >
-                                        <ChevronDown className="w-4 h-4" />
-                                        Click to view content
-                                      </button>
-                                    )}
+                              {isExpanded ? (
+                                <ChevronUp className="w-5 h-5 text-muted-foreground ml-2 flex-shrink-0" />
+                              ) : (
+                                <ChevronDown className="w-5 h-5 text-muted-foreground ml-2 flex-shrink-0" />
+                              )}
+                            </button>
+                            
+                            {/* Expanded content */}
+                            {isExpanded && (
+                              <div className="border-t border-border">
+                                <div className="flex">
+                                  {/* Left side - User info */}
+                                  <div className="w-32 md:w-40 flex-shrink-0 bg-secondary/50 p-4 flex flex-col items-center justify-start border-r border-border">
+                                    <div className="w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden border-2 border-border mb-3">
+                                      <img 
+                                        src={post.profiles.pfp_url || '/default-pfp.png'} 
+                                        alt={post.profiles.username} 
+                                        className="w-full h-full object-cover"
+                                      />
+                                    </div>
+                                    <div className="text-center space-y-1 w-full">
+                                      <p className="font-bold text-foreground text-sm truncate">{post.profiles.username}</p>
+                                      <p className="text-xs text-muted-foreground">ID: #{post.authorSequentialId || getSequentialId(post.author_id)}</p>
+                                      <p className={`text-xs font-semibold capitalize ${
+                                        post.authorRole === 'admin' ? 'text-red-500' : 
+                                        post.authorRole === 'elder' ? 'text-purple-500' : 
+                                        'text-muted-foreground'
+                                      }`}>{post.authorRole || 'user'}</p>
+                                      <p className="text-xs text-muted-foreground">
+                                        {new Date(post.profiles.created_at).toLocaleDateString()}
+                                      </p>
+                                    </div>
                                   </div>
-                                ) : (
-                                  <p className="text-foreground whitespace-pre-wrap">{post.content}</p>
-                                )}
+                                  
+                                  {/* Right side - Post content */}
+                                  <div className="flex-1 p-4 flex flex-col">
+                                    <div className="mb-3">
+                                      <h3 className="text-lg font-bold text-foreground">{post.title}</h3>
+                                      <p className="text-xs text-muted-foreground">
+                                        Posted {new Date(post.created_at).toLocaleString()}
+                                      </p>
+                                    </div>
+                                    <p className="text-foreground whitespace-pre-wrap">{post.content}</p>
+                                  </div>
+                                </div>
                               </div>
-                            </div>
+                            )}
                           </div>
                         );
                       })
