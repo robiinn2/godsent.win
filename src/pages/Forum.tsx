@@ -149,16 +149,23 @@ const Forum = () => {
 
     const { data, error } = await supabase
       .from('posts')
-      .select(`
-        *,
-        profiles (username, pfp_url, created_at)
-      `)
+      .select('*')
       .eq('section_id', sectionId)
       .order('created_at', { ascending: false });
 
-    if (!error && data) {
-      // Get roles for all authors
+    if (!error && data && data.length > 0) {
+      // Get author IDs
       const authorIds = [...new Set(data.map((p: any) => p.author_id))];
+      
+      // Fetch profiles for all authors
+      const { data: authorProfiles } = await supabase
+        .from('profiles')
+        .select('id, username, pfp_url, created_at')
+        .in('id', authorIds);
+      
+      const profileMap = new Map(authorProfiles?.map(p => [p.id, p]) || []);
+      
+      // Get roles for all authors
       const { data: roles } = await supabase
         .from('user_roles')
         .select('user_id, role')
@@ -171,13 +178,23 @@ const Forum = () => {
         return index + 1;
       };
 
-      const postsWithRoles = data.map((post: any) => ({
-        ...post,
-        authorRole: roleMap.get(post.author_id) || 'user',
-        authorSequentialId: getSeqId(post.author_id),
-      }));
+      const postsWithRoles = data.map((post: any) => {
+        const profile = profileMap.get(post.author_id);
+        return {
+          ...post,
+          profiles: profile ? {
+            username: profile.username,
+            pfp_url: profile.pfp_url,
+            created_at: profile.created_at,
+          } : { username: 'Unknown', pfp_url: null, created_at: new Date().toISOString() },
+          authorRole: roleMap.get(post.author_id) || 'user',
+          authorSequentialId: getSeqId(post.author_id),
+        };
+      });
 
       setPosts(postsWithRoles);
+    } else if (!error) {
+      setPosts([]);
     }
   };
 
