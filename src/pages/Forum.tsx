@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Newspaper, HelpCircle, ArrowUp, ChevronDown, ChevronUp } from "lucide-react";
+import { Newspaper, HelpCircle, ArrowUp, Send } from "lucide-react";
 
 interface ForumSection {
   id: string;
@@ -26,6 +26,21 @@ interface Post {
   created_at: string;
   author_id: string;
   section_id: string;
+  profiles: {
+    username: string;
+    pfp_url: string | null;
+    created_at: string;
+  };
+  authorRole?: string;
+  authorSequentialId?: number;
+}
+
+interface Reply {
+  id: string;
+  post_id: string;
+  author_id: string;
+  content: string;
+  created_at: string;
   profiles: {
     username: string;
     pfp_url: string | null;
@@ -64,8 +79,13 @@ const Forum = () => {
   const [newPostTitle, setNewPostTitle] = useState("");
   const [newPostContent, setNewPostContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [expandedPosts, setExpandedPosts] = useState<Set<string>>(new Set());
   const [allProfiles, setAllProfiles] = useState<Array<{ id: string; created_at: string }>>([]);
+  
+  // Full screen post view
+  const [viewingPost, setViewingPost] = useState<Post | null>(null);
+  const [replies, setReplies] = useState<Reply[]>([]);
+  const [newReply, setNewReply] = useState("");
+  const [submittingReply, setSubmittingReply] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -83,7 +103,6 @@ const Forum = () => {
     if (selectedSection) {
       loadPosts(selectedSection.id);
       
-      // Subscribe to real-time updates
       const channel = supabase
         .channel('posts-changes')
         .on(
@@ -106,6 +125,33 @@ const Forum = () => {
     }
   }, [selectedSection]);
 
+  // Subscribe to replies when viewing a post
+  useEffect(() => {
+    if (viewingPost) {
+      loadReplies(viewingPost.id);
+      
+      const channel = supabase
+        .channel('replies-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'post_replies',
+            filter: `post_id=eq.${viewingPost.id}`
+          },
+          () => {
+            loadReplies(viewingPost.id);
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [viewingPost]);
+
   const loadSections = async () => {
     const { data, error } = await supabase
       .from('forum_sections')
@@ -116,7 +162,6 @@ const Forum = () => {
       setSections(data);
     }
 
-    // Load all profiles for sequential IDs
     const { data: profiles } = await supabase
       .from('profiles')
       .select('id, created_at')
@@ -133,7 +178,6 @@ const Forum = () => {
   };
 
   const loadPosts = async (sectionId: string) => {
-    // Ensure we have profiles for sequential IDs
     let profiles = allProfiles;
     if (profiles.length === 0) {
       const { data: profileData } = await supabase
@@ -154,10 +198,8 @@ const Forum = () => {
       .order('created_at', { ascending: false });
 
     if (!error && data && data.length > 0) {
-      // Get author IDs
       const authorIds = [...new Set(data.map((p: any) => p.author_id))];
       
-      // Fetch profiles for all authors
       const { data: authorProfiles } = await supabase
         .from('profiles')
         .select('id, username, pfp_url, created_at')
@@ -165,7 +207,6 @@ const Forum = () => {
       
       const profileMap = new Map(authorProfiles?.map(p => [p.id, p]) || []);
       
-      // Get roles for all authors
       const { data: roles } = await supabase
         .from('user_roles')
         .select('user_id, role')
@@ -198,16 +239,66 @@ const Forum = () => {
     }
   };
 
-  const togglePostExpand = (postId: string) => {
-    setExpandedPosts(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(postId)) {
-        newSet.delete(postId);
-      } else {
-        newSet.add(postId);
+  const loadReplies = async (postId: string) => {
+    let profiles = allProfiles;
+    if (profiles.length === 0) {
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('id, created_at')
+        .order('created_at', { ascending: true });
+      
+      if (profileData) {
+        profiles = profileData;
+        setAllProfiles(profileData);
       }
-      return newSet;
-    });
+    }
+
+    const { data, error } = await supabase
+      .from('post_replies')
+      .select('*')
+      .eq('post_id', postId)
+      .order('created_at', { ascending: true });
+
+    if (!error && data && data.length > 0) {
+      const authorIds = [...new Set(data.map((r: any) => r.author_id))];
+      
+      const { data: authorProfiles } = await supabase
+        .from('profiles')
+        .select('id, username, pfp_url, created_at')
+        .in('id', authorIds);
+      
+      const profileMap = new Map(authorProfiles?.map(p => [p.id, p]) || []);
+      
+      const { data: roles } = await supabase
+        .from('user_roles')
+        .select('user_id, role')
+        .in('user_id', authorIds);
+
+      const roleMap = new Map(roles?.map(r => [r.user_id, r.role]) || []);
+
+      const getSeqId = (authorId: string) => {
+        const index = profiles.findIndex(p => p.id === authorId);
+        return index + 1;
+      };
+
+      const repliesWithProfiles = data.map((reply: any) => {
+        const profile = profileMap.get(reply.author_id);
+        return {
+          ...reply,
+          profiles: profile ? {
+            username: profile.username,
+            pfp_url: profile.pfp_url,
+            created_at: profile.created_at,
+          } : { username: 'Unknown', pfp_url: null, created_at: new Date().toISOString() },
+          authorRole: roleMap.get(reply.author_id) || 'user',
+          authorSequentialId: getSeqId(reply.author_id),
+        };
+      });
+
+      setReplies(repliesWithProfiles);
+    } else if (!error) {
+      setReplies([]);
+    }
   };
 
   const handleCreatePost = async (e: React.FormEvent) => {
@@ -222,7 +313,6 @@ const Forum = () => {
       return;
     }
 
-    // Check if user can post in this section
     const isRestrictedSection = selectedSection.slug === 'announcements' || selectedSection.slug === 'updates';
     if (isRestrictedSection && !isAdmin) {
       toast({
@@ -263,6 +353,46 @@ const Forum = () => {
     }
   };
 
+  const handleSubmitReply = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!viewingPost || !newReply.trim()) {
+      return;
+    }
+
+    setSubmittingReply(true);
+    const { error } = await supabase
+      .from('post_replies')
+      .insert({
+        post_id: viewingPost.id,
+        author_id: user!.id,
+        content: newReply.trim(),
+      });
+
+    setSubmittingReply(false);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send reply",
+        variant: "destructive",
+      });
+    } else {
+      setNewReply("");
+    }
+  };
+
+  const openPost = (post: Post) => {
+    setViewingPost(post);
+    setReplies([]);
+  };
+
+  const closePost = () => {
+    setViewingPost(null);
+    setReplies([]);
+    setNewReply("");
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -273,6 +403,119 @@ const Forum = () => {
 
   if (!user) {
     return null;
+  }
+
+  // Full screen post view
+  if (viewingPost) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Header onLogoClick={closePost} />
+        
+        <main className="flex-1 container mx-auto px-4 py-8 max-w-4xl">
+          {/* Original Post */}
+          <div className="bg-card border border-border rounded mb-6">
+            <div className="flex">
+              {/* Left side - User info */}
+              <div className="w-32 md:w-48 flex-shrink-0 bg-secondary/50 p-4 flex flex-col items-center justify-start border-r border-border">
+                <div className="w-16 h-16 md:w-24 md:h-24 rounded-full overflow-hidden border-2 border-border mb-3">
+                  <img 
+                    src={viewingPost.profiles.pfp_url || '/default-pfp.png'} 
+                    alt={viewingPost.profiles.username} 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="text-center space-y-1 w-full">
+                  <p className="font-bold text-foreground text-sm truncate">{viewingPost.profiles.username}</p>
+                  <p className="text-xs text-muted-foreground">ID: #{viewingPost.authorSequentialId || getSequentialId(viewingPost.author_id)}</p>
+                  <p className={`text-xs font-semibold capitalize ${
+                    viewingPost.authorRole === 'admin' ? 'text-red-500' : 
+                    viewingPost.authorRole === 'elder' ? 'text-purple-500' : 
+                    'text-muted-foreground'
+                  }`}>{viewingPost.authorRole || 'user'}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Joined {new Date(viewingPost.profiles.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+              
+              {/* Right side - Post content */}
+              <div className="flex-1 p-4 flex flex-col">
+                <div className="mb-3 border-b border-border pb-3">
+                  <h1 className="text-xl font-bold text-foreground">{viewingPost.title}</h1>
+                  <p className="text-xs text-muted-foreground">
+                    Posted {new Date(viewingPost.created_at).toLocaleString()}
+                  </p>
+                </div>
+                <p className="text-foreground whitespace-pre-wrap">{viewingPost.content}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Replies Section */}
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold text-foreground mb-4">Replies ({replies.length})</h2>
+            
+            {replies.length === 0 ? (
+              <p className="text-muted-foreground text-sm">No replies yet</p>
+            ) : (
+              <div className="space-y-4">
+                {replies.map((reply) => (
+                  <div key={reply.id} className="bg-card border border-border rounded">
+                    <div className="flex">
+                      {/* Left side - User info */}
+                      <div className="w-24 md:w-36 flex-shrink-0 bg-secondary/50 p-3 flex flex-col items-center justify-start border-r border-border">
+                        <div className="w-10 h-10 md:w-14 md:h-14 rounded-full overflow-hidden border border-border mb-2">
+                          <img 
+                            src={reply.profiles.pfp_url || '/default-pfp.png'} 
+                            alt={reply.profiles.username} 
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="text-center space-y-0.5 w-full">
+                          <p className="font-bold text-foreground text-xs truncate">{reply.profiles.username}</p>
+                          <p className="text-[10px] text-muted-foreground">#{reply.authorSequentialId}</p>
+                          <p className={`text-[10px] font-semibold capitalize ${
+                            reply.authorRole === 'admin' ? 'text-red-500' : 
+                            reply.authorRole === 'elder' ? 'text-purple-500' : 
+                            'text-muted-foreground'
+                          }`}>{reply.authorRole || 'user'}</p>
+                        </div>
+                      </div>
+                      
+                      {/* Right side - Reply content */}
+                      <div className="flex-1 p-3">
+                        <p className="text-xs text-muted-foreground mb-2">
+                          {new Date(reply.created_at).toLocaleString()}
+                        </p>
+                        <p className="text-foreground text-sm whitespace-pre-wrap">{reply.content}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Reply Input */}
+          <form onSubmit={handleSubmitReply} className="bg-card border border-border rounded p-4">
+            <div className="flex gap-3">
+              <Textarea
+                value={newReply}
+                onChange={(e) => setNewReply(e.target.value)}
+                placeholder="Write a reply..."
+                rows={3}
+                className="bg-secondary flex-1"
+              />
+              <Button type="submit" disabled={submittingReply || !newReply.trim()} className="self-end">
+                <Send className="w-4 h-4" />
+              </Button>
+            </div>
+          </form>
+        </main>
+        
+        <Footer />
+      </div>
+    );
   }
 
   return (
@@ -365,85 +608,22 @@ const Forum = () => {
                     </form>
                   )}
 
-                  <div className="space-y-2">
+                  <div className="space-y-1">
                     {posts.length === 0 ? (
                       <p className="text-muted-foreground">No posts yet</p>
                     ) : (
-                      posts.map((post) => {
-                        const isExpanded = expandedPosts.has(post.id);
-                        
-                        return (
-                          <div key={post.id} className="bg-card border border-border rounded overflow-hidden">
-                            {/* Compact header row - always visible */}
-                            <button
-                              onClick={() => togglePostExpand(post.id)}
-                              className="w-full flex items-center justify-between px-4 py-3 hover:bg-secondary/50 transition-colors text-left"
-                            >
-                              <div className="flex items-center gap-3 flex-1 min-w-0">
-                                <div className="w-8 h-8 rounded-full overflow-hidden border border-border flex-shrink-0">
-                                  <img 
-                                    src={post.profiles.pfp_url || '/default-pfp.png'} 
-                                    alt={post.profiles.username} 
-                                    className="w-full h-full object-cover"
-                                  />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <h3 className="font-semibold text-foreground truncate">{post.title}</h3>
-                                </div>
-                                <span className="text-xs text-muted-foreground flex-shrink-0">
-                                  {new Date(post.created_at).toLocaleDateString()}
-                                </span>
-                              </div>
-                              {isExpanded ? (
-                                <ChevronUp className="w-5 h-5 text-muted-foreground ml-2 flex-shrink-0" />
-                              ) : (
-                                <ChevronDown className="w-5 h-5 text-muted-foreground ml-2 flex-shrink-0" />
-                              )}
-                            </button>
-                            
-                            {/* Expanded content */}
-                            {isExpanded && (
-                              <div className="border-t border-border">
-                                <div className="flex">
-                                  {/* Left side - User info */}
-                                  <div className="w-32 md:w-40 flex-shrink-0 bg-secondary/50 p-4 flex flex-col items-center justify-start border-r border-border">
-                                    <div className="w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden border-2 border-border mb-3">
-                                      <img 
-                                        src={post.profiles.pfp_url || '/default-pfp.png'} 
-                                        alt={post.profiles.username} 
-                                        className="w-full h-full object-cover"
-                                      />
-                                    </div>
-                                    <div className="text-center space-y-1 w-full">
-                                      <p className="font-bold text-foreground text-sm truncate">{post.profiles.username}</p>
-                                      <p className="text-xs text-muted-foreground">ID: #{post.authorSequentialId || getSequentialId(post.author_id)}</p>
-                                      <p className={`text-xs font-semibold capitalize ${
-                                        post.authorRole === 'admin' ? 'text-red-500' : 
-                                        post.authorRole === 'elder' ? 'text-purple-500' : 
-                                        'text-muted-foreground'
-                                      }`}>{post.authorRole || 'user'}</p>
-                                      <p className="text-xs text-muted-foreground">
-                                        {new Date(post.profiles.created_at).toLocaleDateString()}
-                                      </p>
-                                    </div>
-                                  </div>
-                                  
-                                  {/* Right side - Post content */}
-                                  <div className="flex-1 p-4 flex flex-col">
-                                    <div className="mb-3">
-                                      <h3 className="text-lg font-bold text-foreground">{post.title}</h3>
-                                      <p className="text-xs text-muted-foreground">
-                                        Posted {new Date(post.created_at).toLocaleString()}
-                                      </p>
-                                    </div>
-                                    <p className="text-foreground whitespace-pre-wrap">{post.content}</p>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })
+                      posts.map((post) => (
+                        <button
+                          key={post.id}
+                          onClick={() => openPost(post)}
+                          className="w-full text-left px-3 py-2 bg-card border border-border rounded hover:bg-secondary/50 transition-colors flex items-center gap-3"
+                        >
+                          <span className="text-foreground hover:underline truncate flex-1">{post.title}</span>
+                          <span className="text-xs text-muted-foreground flex-shrink-0">
+                            by {post.profiles.username}
+                          </span>
+                        </button>
+                      ))
                     )}
                   </div>
                 </InfoCard>

@@ -7,7 +7,11 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-const Header = () => {
+interface HeaderProps {
+  onLogoClick?: () => void;
+}
+
+const Header = ({ onLogoClick }: HeaderProps = {}) => {
   const { user, signOut, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [pfpUrl, setPfpUrl] = useState<string | null>(null);
@@ -30,11 +34,22 @@ const Header = () => {
     }
   };
 
+  const handleLogoClick = (e: React.MouseEvent) => {
+    if (onLogoClick) {
+      e.preventDefault();
+      onLogoClick();
+    }
+  };
+
   return (
     <header className="bg-card border-b border-border">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          <NavLink to={user ? "/forum" : "/"} className="text-2xl font-bold tracking-tight">
+          <NavLink 
+            to={user ? "/forum" : "/"} 
+            className="text-2xl font-bold tracking-tight"
+            onClick={handleLogoClick}
+          >
             <span className="text-foreground">Godsent</span>
             <span className="text-muted-foreground">.win</span>
           </NavLink>
