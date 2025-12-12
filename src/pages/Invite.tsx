@@ -87,11 +87,13 @@ const Invite = () => {
 
     setGenerating(true);
     
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('username')
       .eq('id', user!.id)
-      .single();
+      .maybeSingle();
+    
+    const creatorUsername = profile?.username || 'User';
     
     const randomChars = () => Array.from({ length: 4 }, () => 
       'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[Math.floor(Math.random() * 36)]
@@ -108,7 +110,7 @@ const Invite = () => {
       .insert({ 
         key: newKey, 
         created_by: user!.id,
-        creator_username: profile?.username || 'Unknown',
+        creator_username: creatorUsername,
         expires_at: expiresAt
       });
     
