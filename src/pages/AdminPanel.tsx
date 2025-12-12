@@ -7,12 +7,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 interface Profile {
   id: string;
@@ -33,6 +33,7 @@ interface InvitationKey {
   used_at: string | null;
   creator_username: string | null;
   creatorSequentialId?: number;
+  expires_at: string | null;
 }
 
 interface UserGrant {
@@ -43,6 +44,7 @@ interface UserGrant {
   granted_by: string;
   username?: string;
   userSequentialId?: number;
+  expiration_days?: number;
 }
 
 interface SupportTicket {
@@ -62,6 +64,15 @@ interface SupportTicket {
   }>;
 }
 
+const EXPIRATION_OPTIONS = [
+  { value: "1", label: "1 Day" },
+  { value: "3", label: "3 Days" },
+  { value: "7", label: "7 Days" },
+  { value: "14", label: "14 Days" },
+  { value: "30", label: "30 Days" },
+  { value: "never", label: "Never" },
+];
+
 const AdminPanel = () => {
   const { user, loading, adminLoading, isAdmin } = useAuth();
   const navigate = useNavigate();
@@ -80,6 +91,15 @@ const AdminPanel = () => {
   const [banType, setBanType] = useState<"temporary" | "permanent">("temporary");
   const [banReason, setBanReason] = useState("");
   const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
+  
+  // Key generation state
+  const [keyDialogOpen, setKeyDialogOpen] = useState(false);
+  const [keyExpiration, setKeyExpiration] = useState("7");
+  
+  // Grant invite state
+  const [grantDialogOpen, setGrantDialogOpen] = useState(false);
+  const [grantExpiration, setGrantExpiration] = useState("7");
+  const [grantUser, setGrantUser] = useState<Profile | null>(null);
 
   useEffect(() => {
     if (!loading && !adminLoading && (!user || !isAdmin)) {
@@ -103,12 +123,10 @@ const AdminPanel = () => {
       .order('created_at', { ascending: true });
     
     if (profiles) {
-      // Get invitation keys for each user
       const { data: codes } = await supabase
         .from('invitation_codes')
         .select('key, used_by');
       
-      // Get roles for each user
       const { data: roles } = await supabase
         .from('user_roles')
         .select('user_id, role');
@@ -137,7 +155,6 @@ const AdminPanel = () => {
       .order('created_at', { ascending: false });
     
     if (data) {
-      // Get all profiles sorted by join date for sequential IDs
       const { data: profiles } = await supabase
         .from('profiles')
         .select('id, created_at')
@@ -162,7 +179,6 @@ const AdminPanel = () => {
       .order('granted_at', { ascending: false });
     
     if (grants) {
-      // Get all profiles sorted by join date for sequential IDs
       const { data: profiles } = await supabase
         .from('profiles')
         .select('id, username, created_at')
@@ -192,7 +208,6 @@ const AdminPanel = () => {
   const generateKey = async () => {
     setGenerating(true);
     
-    // Get current user's username
     const { data: profile } = await supabase
       .from('profiles')
       .select('username')
@@ -204,14 +219,20 @@ const AdminPanel = () => {
     ).join('');
     const newKey = `Godsent-${randomChars()}-${randomChars()}-${randomChars()}-${randomChars()}`;
     
+    const expiresAt = keyExpiration === 'never' 
+      ? null 
+      : new Date(Date.now() + parseInt(keyExpiration) * 24 * 60 * 60 * 1000).toISOString();
+    
     await supabase.from('invitation_codes').insert({ 
       key: newKey, 
       created_by: user!.id,
-      creator_username: profile?.username || 'Admin'
+      creator_username: profile?.username || 'Admin',
+      expires_at: expiresAt
     });
     toast({ title: "Success", description: `Key: ${newKey}` });
     loadKeys();
     setGenerating(false);
+    setKeyDialogOpen(false);
   };
 
   const terminateKey = async (key: string) => {
@@ -244,22 +265,31 @@ const AdminPanel = () => {
     loadUsers();
   };
 
-  const grantInvites = async (userId: string, username: string) => {
+  const openGrantDialog = (profile: Profile) => {
+    setGrantUser(profile);
+    setGrantExpiration("7");
+    setGrantDialogOpen(true);
+  };
+
+  const grantInvites = async () => {
+    if (!grantUser) return;
+    
     await supabase.from('user_invitations').insert({
-      user_id: userId,
+      user_id: grantUser.id,
       invites_remaining: 1,
       granted_by: user!.id,
+      expiration_days: grantExpiration === 'never' ? null : parseInt(grantExpiration),
     });
     
-    // Send notification to the user
     await supabase.from('notifications').insert({
-      user_id: userId,
+      user_id: grantUser.id,
       type: 'invite_granted',
       title: 'Invite Granted',
       message: 'You have been granted 1 invitation! Click to create your key.',
     });
     
-    toast({ title: "Success", description: `Granted 1 invite to ${username}` });
+    toast({ title: "Success", description: `Granted 1 invite to ${grantUser.username}` });
+    setGrantDialogOpen(false);
     loadUserGrants();
   };
 
@@ -271,7 +301,6 @@ const AdminPanel = () => {
     }
     if (!confirm(`Promote ${username} to ${nextRole}?`)) return;
     
-    // Remove current role if not 'user' (user role is default)
     if (currentRole !== 'user') {
       await supabase.from('user_roles').delete().eq('user_id', userId).eq('role', currentRole);
     }
@@ -301,7 +330,6 @@ const AdminPanel = () => {
     loadTickets();
   };
 
-  // Create a map of user IDs to sequential IDs based on join date
   const userSequentialIds = new Map<string, number>();
   [...users].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
     .forEach((u, idx) => userSequentialIds.set(u.id, idx + 1));
@@ -309,6 +337,18 @@ const AdminPanel = () => {
   const filteredUsers = users
     .filter(u => u.username.toLowerCase().includes(searchTerm.toLowerCase()) || u.email.toLowerCase().includes(searchTerm.toLowerCase()))
     .sort((a, b) => sortBy === "name" ? a.username.localeCompare(b.username) : new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+  const isKeyExpired = (expiresAt: string | null) => {
+    if (!expiresAt) return false;
+    return new Date(expiresAt) < new Date();
+  };
+
+  const formatExpiration = (expiresAt: string | null) => {
+    if (!expiresAt) return 'Never';
+    const date = new Date(expiresAt);
+    if (date < new Date()) return 'Expired';
+    return date.toLocaleDateString();
+  };
 
   if (loading || !user || !isAdmin) return null;
 
@@ -336,15 +376,15 @@ const AdminPanel = () => {
                 </Select>
               </div>
               <div className="space-y-2">
-                {filteredUsers.map((profile, index) => (
+                {filteredUsers.map((profile) => (
                   <div key={profile.id} className="p-4 bg-card border border-border rounded flex justify-between items-center">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded font-mono font-bold">ID: {userSequentialIds.get(profile.id)}</span>
                         <p className="font-bold text-foreground">{profile.username}</p>
                         <span className={`text-xs px-2 py-1 rounded capitalize ${
-                          profile.role === 'admin' ? 'bg-red-500/20 text-red-500' : 
-                          profile.role === 'elder' ? 'bg-blue-500/20 text-blue-500' : 
+                          profile.role === 'admin' ? 'bg-destructive/20 text-destructive' : 
+                          profile.role === 'elder' ? 'bg-accent text-accent-foreground' : 
                           'bg-muted text-muted-foreground'
                         }`}>{profile.role || 'user'}</span>
                       </div>
@@ -357,7 +397,7 @@ const AdminPanel = () => {
                       <Button size="sm" variant="outline" onClick={() => promoteUser(profile.id, profile.username, profile.role || 'user')} disabled={profile.id === user.id || profile.role === 'admin'}>
                         {profile.role === 'user' ? 'Promote to Elder' : profile.role === 'elder' ? 'Promote to Admin' : 'Max Rank'}
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => grantInvites(profile.id, profile.username)} disabled={profile.id === user.id}>Grant Invite</Button>
+                      <Button size="sm" variant="outline" onClick={() => openGrantDialog(profile)} disabled={profile.id === user.id}>Grant Invite</Button>
                       <Button size="sm" variant="destructive" onClick={() => { setSelectedUser(profile); setBanDialogOpen(true); }} disabled={profile.id === user.id}>Ban</Button>
                       <Button size="sm" variant="destructive" onClick={() => handleTerminateAccount(profile.id, profile.username)} disabled={profile.id === user.id}>Terminate</Button>
                     </div>
@@ -369,13 +409,12 @@ const AdminPanel = () => {
           <TabsContent value="keys">
             <InfoCard title="Invitation Keys">
               <div className="flex items-center gap-4 mb-4">
-                <Button onClick={generateKey} disabled={generating}>{generating ? 'Generating...' : 'Generate Key'}</Button>
+                <Button onClick={() => setKeyDialogOpen(true)}>Generate Key</Button>
                 <span className="text-sm text-muted-foreground">
-                  Available: {keys.filter(k => !k.used_by).length} | Used: {keys.filter(k => k.used_by).length}
+                  Available: {keys.filter(k => !k.used_by && !isKeyExpired(k.expires_at)).length} | Used: {keys.filter(k => k.used_by).length} | Expired: {keys.filter(k => !k.used_by && isKeyExpired(k.expires_at)).length}
                 </span>
               </div>
               
-              {/* User Grants Section */}
               {userGrants.length > 0 && (
                 <div className="mb-6">
                   <h3 className="text-lg font-semibold text-foreground mb-3">User Invite Grants</h3>
@@ -389,9 +428,12 @@ const AdminPanel = () => {
                               <p className="font-bold text-foreground">{grant.username}</p>
                             </div>
                             <p className="text-sm text-muted-foreground">Granted: {new Date(grant.granted_at).toLocaleDateString()}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Key expires: {grant.expiration_days ? `${grant.expiration_days} days after creation` : 'Never'}
+                            </p>
                           </div>
                           <div className="text-right">
-                            <span className={`px-3 py-1 rounded text-sm ${grant.invites_remaining > 0 ? 'bg-green-500/20 text-green-500' : 'bg-muted text-muted-foreground'}`}>
+                            <span className={`px-3 py-1 rounded text-sm ${grant.invites_remaining > 0 ? 'bg-accent/20 text-accent-foreground' : 'bg-muted text-muted-foreground'}`}>
                               Available: {grant.invites_remaining}
                             </span>
                           </div>
@@ -402,21 +444,27 @@ const AdminPanel = () => {
                 </div>
               )}
               
-              {/* Keys Section */}
               <h3 className="text-lg font-semibold text-foreground mb-3">Generated Keys</h3>
               <div className="space-y-2">
                 {keys.map((k) => (
-                  <div key={k.key} className="p-4 bg-card border border-border rounded flex justify-between items-center">
+                  <div key={k.key} className={`p-4 bg-card border border-border rounded flex justify-between items-center ${isKeyExpired(k.expires_at) && !k.used_by ? 'opacity-50' : ''}`}>
                     <div>
                       <p className="font-mono font-bold text-foreground">{k.key}</p>
                       <p className="text-sm text-muted-foreground">
                         Created by: {k.creator_username || 'Admin'} {k.creatorSequentialId ? `(#${k.creatorSequentialId})` : ''} • {new Date(k.created_at).toLocaleDateString()}
                       </p>
+                      <p className="text-xs text-muted-foreground">
+                        Expires: {formatExpiration(k.expires_at)}
+                      </p>
                       {k.used_by && <p className="text-sm text-muted-foreground">Used on {new Date(k.used_at!).toLocaleDateString()}</p>}
                     </div>
                     <div className="flex gap-2">
-                      <span className={`px-3 py-1 rounded text-sm ${k.used_by ? 'bg-muted text-muted-foreground' : 'bg-green-500/20 text-green-500'}`}>
-                        {k.used_by ? 'Used' : 'Active'}
+                      <span className={`px-3 py-1 rounded text-sm ${
+                        k.used_by ? 'bg-muted text-muted-foreground' : 
+                        isKeyExpired(k.expires_at) ? 'bg-destructive/20 text-destructive' :
+                        'bg-accent/20 text-accent-foreground'
+                      }`}>
+                        {k.used_by ? 'Used' : isKeyExpired(k.expires_at) ? 'Expired' : 'Active'}
                       </span>
                       <Button size="sm" variant="destructive" onClick={() => terminateKey(k.key)}>Terminate</Button>
                     </div>
@@ -435,7 +483,7 @@ const AdminPanel = () => {
                         <h4 className="font-bold text-foreground">{ticket.subject}</h4>
                         <p className="text-sm text-muted-foreground">From: {ticket.profiles.username}</p>
                       </div>
-                      <span className={`text-xs px-2 py-1 rounded ${ticket.status === 'open' ? 'bg-yellow-500/20 text-yellow-500' : 'bg-green-500/20 text-green-500'}`}>{ticket.status}</span>
+                      <span className={`text-xs px-2 py-1 rounded ${ticket.status === 'open' ? 'bg-accent/20 text-accent-foreground' : 'bg-accent/20 text-accent-foreground'}`}>{ticket.status}</span>
                     </div>
                     <p className="text-foreground mb-2">{ticket.message}</p>
                     {ticket.ticket_responses?.[0] && (
@@ -462,6 +510,8 @@ const AdminPanel = () => {
             </InfoCard>
           </TabsContent>
         </Tabs>
+        
+        {/* Ban Dialog */}
         <Dialog open={banDialogOpen} onOpenChange={setBanDialogOpen}>
           <DialogContent className="bg-card">
             <DialogHeader>
@@ -480,6 +530,62 @@ const AdminPanel = () => {
               <div className="flex gap-2">
                 <Button onClick={handleBanUser} variant="destructive">Ban</Button>
                 <Button variant="outline" onClick={() => setBanDialogOpen(false)}>Cancel</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+        
+        {/* Generate Key Dialog */}
+        <Dialog open={keyDialogOpen} onOpenChange={setKeyDialogOpen}>
+          <DialogContent className="bg-card">
+            <DialogHeader>
+              <DialogTitle>Generate Invitation Key</DialogTitle>
+              <DialogDescription>Choose how long the key will be valid</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Key Expires In</Label>
+                <Select value={keyExpiration} onValueChange={setKeyExpiration}>
+                  <SelectTrigger className="bg-secondary mt-2"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {EXPIRATION_OPTIONS.map(opt => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={generateKey} disabled={generating}>
+                  {generating ? 'Generating...' : 'Generate'}
+                </Button>
+                <Button variant="outline" onClick={() => setKeyDialogOpen(false)}>Cancel</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+        
+        {/* Grant Invite Dialog */}
+        <Dialog open={grantDialogOpen} onOpenChange={setGrantDialogOpen}>
+          <DialogContent className="bg-card">
+            <DialogHeader>
+              <DialogTitle>Grant Invite to {grantUser?.username}</DialogTitle>
+              <DialogDescription>Choose how long their generated key will be valid</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Key Expires In</Label>
+                <Select value={grantExpiration} onValueChange={setGrantExpiration}>
+                  <SelectTrigger className="bg-secondary mt-2"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {EXPIRATION_OPTIONS.map(opt => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={grantInvites}>Grant Invite</Button>
+                <Button variant="outline" onClick={() => setGrantDialogOpen(false)}>Cancel</Button>
               </div>
             </div>
           </DialogContent>

@@ -73,6 +73,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           creator_username: string | null
+          expires_at: string | null
           key: string
           used_at: string | null
           used_by: string | null
@@ -81,6 +82,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           creator_username?: string | null
+          expires_at?: string | null
           key: string
           used_at?: string | null
           used_by?: string | null
@@ -89,6 +91,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           creator_username?: string | null
+          expires_at?: string | null
           key?: string
           used_at?: string | null
           used_by?: string | null
@@ -367,6 +370,7 @@ export type Database = {
       }
       user_invitations: {
         Row: {
+          expiration_days: number | null
           granted_at: string | null
           granted_by: string | null
           id: string
@@ -375,6 +379,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          expiration_days?: number | null
           granted_at?: string | null
           granted_by?: string | null
           id?: string
@@ -383,6 +388,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          expiration_days?: number | null
           granted_at?: string | null
           granted_by?: string | null
           id?: string
