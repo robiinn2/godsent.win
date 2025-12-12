@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Newspaper, HelpCircle, ArrowUp, Send } from "lucide-react";
+import { Newspaper, HelpCircle, ArrowUp, Send, Paperclip, Download, Trash2 } from "lucide-react";
 
 interface ForumSection {
   id: string;
@@ -26,6 +26,9 @@ interface Post {
   created_at: string;
   author_id: string;
   section_id: string;
+  file_url?: string | null;
+  file_name?: string | null;
+  file_size?: number | null;
   profiles: {
     username: string;
     pfp_url: string | null;
@@ -69,7 +72,7 @@ const getSectionIcon = (slug: string) => {
 };
 
 const Forum = () => {
-  const { user, loading, isAdmin } = useAuth();
+  const { user, loading, isAdmin, isElder } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [sections, setSections] = useState<ForumSection[]>([]);
@@ -80,6 +83,8 @@ const Forum = () => {
   const [newPostContent, setNewPostContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [allProfiles, setAllProfiles] = useState<Array<{ id: string; created_at: string }>>([]);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Full screen post view
   const [viewingPost, setViewingPost] = useState<Post | null>(null);
@@ -314,16 +319,49 @@ const Forum = () => {
     }
 
     const isRestrictedSection = selectedSection.slug === 'announcements' || selectedSection.slug === 'updates';
-    if (isRestrictedSection && !isAdmin) {
+    if (isRestrictedSection && !isAdmin && !isElder) {
       toast({
         title: "Access Denied",
-        description: "Only admins can post in this section",
+        description: "Only admins and elders can post in this section",
         variant: "destructive",
       });
       return;
     }
 
     setSubmitting(true);
+    
+    let fileUrl = null;
+    let fileName = null;
+    let fileSize = null;
+    
+    // Upload file if selected
+    if (selectedFile) {
+      const fileExt = selectedFile.name.split('.').pop();
+      const filePath = `${user!.id}/${Date.now()}.${fileExt}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('post-files')
+        .upload(filePath, selectedFile);
+      
+      if (uploadError) {
+        toast({
+          title: "Error",
+          description: "Failed to upload file",
+          variant: "destructive",
+        });
+        setSubmitting(false);
+        return;
+      }
+      
+      const { data: urlData } = supabase.storage
+        .from('post-files')
+        .getPublicUrl(filePath);
+      
+      fileUrl = urlData.publicUrl;
+      fileName = selectedFile.name;
+      fileSize = selectedFile.size;
+    }
+    
     const { error } = await supabase
       .from('posts')
       .insert({
@@ -331,6 +369,9 @@ const Forum = () => {
         author_id: user!.id,
         title: newPostTitle,
         content: newPostContent,
+        file_url: fileUrl,
+        file_name: fileName,
+        file_size: fileSize,
       });
 
     setSubmitting(false);
@@ -348,9 +389,57 @@ const Forum = () => {
       });
       setNewPostTitle("");
       setNewPostContent("");
+      setSelectedFile(null);
       setShowNewPost(false);
       loadPosts(selectedSection.id);
     }
+  };
+
+  const handleDeletePost = async (postId: string) => {
+    if (!confirm("Are you sure you want to delete this post?")) return;
+    
+    const { error } = await supabase
+      .from('posts')
+      .delete()
+      .eq('id', postId);
+    
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete post",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Success",
+        description: "Post deleted successfully",
+      });
+      closePost();
+      if (selectedSection) {
+        loadPosts(selectedSection.id);
+      }
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 20 * 1024 * 1024) {
+        toast({
+          title: "Error",
+          description: "File size must be less than 20MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      setSelectedFile(file);
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
   const handleSubmitReply = async (e: React.FormEvent) => {
@@ -440,13 +529,42 @@ const Forum = () => {
               
               {/* Right side - Post content */}
               <div className="flex-1 p-4 flex flex-col">
-                <div className="mb-3 border-b border-border pb-3">
-                  <h1 className="text-xl font-bold text-foreground">{viewingPost.title}</h1>
-                  <p className="text-xs text-muted-foreground">
-                    Posted {new Date(viewingPost.created_at).toLocaleString()}
-                  </p>
+                <div className="mb-3 border-b border-border pb-3 flex items-start justify-between">
+                  <div>
+                    <h1 className="text-xl font-bold text-foreground">{viewingPost.title}</h1>
+                    <p className="text-xs text-muted-foreground">
+                      Posted {new Date(viewingPost.created_at).toLocaleString()}
+                    </p>
+                  </div>
+                  {(isAdmin || isElder) && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDeletePost(viewingPost.id)}
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
-                <p className="text-foreground whitespace-pre-wrap">{viewingPost.content}</p>
+                <p className="text-foreground whitespace-pre-wrap mb-4">{viewingPost.content}</p>
+                
+                {/* File attachment */}
+                {viewingPost.file_url && viewingPost.file_name && (
+                  <a 
+                    href={viewingPost.file_url} 
+                    download={viewingPost.file_name}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-3 py-2 bg-secondary rounded border border-border hover:bg-secondary/80 transition-colors w-fit"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span className="text-sm">{viewingPost.file_name}</span>
+                    {viewingPost.file_size && (
+                      <span className="text-xs text-muted-foreground">({formatFileSize(viewingPost.file_size)})</span>
+                    )}
+                  </a>
+                )}
               </div>
             </div>
           </div>
@@ -570,7 +688,7 @@ const Forum = () => {
                 <InfoCard title={selectedSection.name}>
                   <p className="text-muted-foreground mb-4">{selectedSection.description}</p>
                   
-                  {(selectedSection.slug === 'resell' || selectedSection.slug === 'questions' || isAdmin) && (
+                  {(selectedSection.slug === 'questions' || isAdmin || (isElder && selectedSection.slug === 'announcements')) && (
                     <Button 
                       onClick={() => setShowNewPost(!showNewPost)}
                       className="mb-4"
@@ -602,6 +720,33 @@ const Forum = () => {
                           className="bg-secondary"
                         />
                       </div>
+                      
+                      {/* File attachment */}
+                      <div className="space-y-2">
+                        <Label>Attach File (optional)</Label>
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          onChange={handleFileSelect}
+                          className="hidden"
+                        />
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => fileInputRef.current?.click()}
+                          >
+                            <Paperclip className="w-4 h-4 mr-2" />
+                            {selectedFile ? 'Change File' : 'Attach File'}
+                          </Button>
+                          {selectedFile && (
+                            <span className="text-sm text-muted-foreground">
+                              {selectedFile.name} ({formatFileSize(selectedFile.size)})
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      
                       <Button type="submit" disabled={submitting}>
                         {submitting ? 'Creating...' : 'Create Post'}
                       </Button>
@@ -618,6 +763,9 @@ const Forum = () => {
                           onClick={() => openPost(post)}
                           className="w-full text-left px-3 py-2 bg-card border border-border rounded hover:bg-secondary/50 transition-colors flex items-center gap-3"
                         >
+                          <span className="text-xs text-muted-foreground flex-shrink-0">
+                            {new Date(post.created_at).toLocaleDateString()}
+                          </span>
                           <span className="text-foreground hover:underline truncate flex-1">{post.title}</span>
                           <span className="text-xs text-muted-foreground flex-shrink-0">
                             by {post.profiles.username}
