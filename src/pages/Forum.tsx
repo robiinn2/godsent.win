@@ -70,35 +70,132 @@ const getSectionIcon = (slug: string) => {
   }
 };
 
-// Floating shapes component for memesense style background
+// DVD-style bouncing shape component
+const BouncingShape = ({ 
+  children, 
+  initialX, 
+  initialY, 
+  speedX, 
+  speedY 
+}: { 
+  children: React.ReactNode; 
+  initialX: number; 
+  initialY: number; 
+  speedX: number; 
+  speedY: number; 
+}) => {
+  const [position, setPosition] = useState({ x: initialX, y: initialY });
+  const [velocity, setVelocity] = useState({ x: speedX, y: speedY });
+  const elementRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const animate = () => {
+      setPosition(prev => {
+        let newX = prev.x + velocity.x;
+        let newY = prev.y + velocity.y;
+        let newVelX = velocity.x;
+        let newVelY = velocity.y;
+
+        const maxX = window.innerWidth - 40;
+        const maxY = window.innerHeight - 40;
+
+        if (newX <= 0 || newX >= maxX) {
+          newVelX = -velocity.x;
+          newX = Math.max(0, Math.min(newX, maxX));
+        }
+        if (newY <= 0 || newY >= maxY) {
+          newVelY = -velocity.y;
+          newY = Math.max(0, Math.min(newY, maxY));
+        }
+
+        if (newVelX !== velocity.x || newVelY !== velocity.y) {
+          setVelocity({ x: newVelX, y: newVelY });
+        }
+
+        return { x: newX, y: newY };
+      });
+    };
+
+    const intervalId = setInterval(animate, 16);
+    return () => clearInterval(intervalId);
+  }, [velocity]);
+
+  return (
+    <div
+      ref={elementRef}
+      className="absolute"
+      style={{ 
+        left: position.x, 
+        top: position.y,
+        transition: 'none'
+      }}
+    >
+      {children}
+    </div>
+  );
+};
+
+// Floating shapes component with DVD-style bouncing
 const FloatingShapes = () => {
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
       {/* Circles */}
-      <div className="absolute top-20 right-1/4 w-6 h-6 border border-muted-foreground/20 rounded-full animate-pulse" />
-      <div className="absolute top-40 right-20 w-8 h-8 border border-accent/30 rounded-full" />
-      <div className="absolute top-60 left-20 w-4 h-4 border border-muted-foreground/20 rounded-full" />
-      <div className="absolute bottom-40 right-1/3 w-5 h-5 border border-muted-foreground/15 rounded-full" />
-      <div className="absolute bottom-60 left-1/4 w-7 h-7 border border-accent/20 rounded-full" />
+      <BouncingShape initialX={200} initialY={80} speedX={1.2} speedY={0.8}>
+        <div className="w-6 h-6 border border-muted-foreground/20 rounded-full" />
+      </BouncingShape>
+      <BouncingShape initialX={800} initialY={160} speedX={-0.9} speedY={1.1}>
+        <div className="w-8 h-8 border border-accent/30 rounded-full" />
+      </BouncingShape>
+      <BouncingShape initialX={80} initialY={240} speedX={1.0} speedY={-0.7}>
+        <div className="w-4 h-4 border border-muted-foreground/20 rounded-full" />
+      </BouncingShape>
+      <BouncingShape initialX={600} initialY={400} speedX={-1.1} speedY={-0.9}>
+        <div className="w-5 h-5 border border-muted-foreground/15 rounded-full" />
+      </BouncingShape>
+      <BouncingShape initialX={300} initialY={500} speedX={0.8} speedY={1.0}>
+        <div className="w-7 h-7 border border-accent/20 rounded-full" />
+      </BouncingShape>
       
-      {/* Triangles (using borders) */}
-      <div className="absolute top-32 left-40 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[14px] border-b-muted-foreground/15" />
-      <div className="absolute top-80 right-40 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[10px] border-b-accent/20" />
-      <div className="absolute bottom-32 left-32 w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-b-[16px] border-b-muted-foreground/10" />
+      {/* Triangles */}
+      <BouncingShape initialX={160} initialY={128} speedX={0.7} speedY={1.2}>
+        <div className="w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[14px] border-b-muted-foreground/15" />
+      </BouncingShape>
+      <BouncingShape initialX={700} initialY={320} speedX={-1.0} speedY={0.6}>
+        <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[10px] border-b-accent/20" />
+      </BouncingShape>
+      <BouncingShape initialX={128} initialY={600} speedX={1.3} speedY={-0.8}>
+        <div className="w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-b-[16px] border-b-muted-foreground/10" />
+      </BouncingShape>
       
       {/* X marks */}
-      <div className="absolute top-48 left-16 text-destructive/30 text-lg font-bold">×</div>
-      <div className="absolute bottom-48 right-24 text-destructive/25 text-xl font-bold">×</div>
-      <div className="absolute top-1/2 right-16 text-destructive/20 text-lg font-bold">×</div>
+      <BouncingShape initialX={64} initialY={192} speedX={0.9} speedY={0.7}>
+        <div className="text-destructive/30 text-lg font-bold">×</div>
+      </BouncingShape>
+      <BouncingShape initialX={900} initialY={450} speedX={-0.8} speedY={-1.0}>
+        <div className="text-destructive/25 text-xl font-bold">×</div>
+      </BouncingShape>
+      <BouncingShape initialX={950} initialY={300} speedX={-1.1} speedY={0.9}>
+        <div className="text-destructive/20 text-lg font-bold">×</div>
+      </BouncingShape>
       
       {/* Lines/dashes */}
-      <div className="absolute top-24 left-1/3 w-6 h-0.5 bg-muted-foreground/15 rotate-45" />
-      <div className="absolute bottom-24 right-1/4 w-8 h-0.5 bg-muted-foreground/15 -rotate-12" />
-      <div className="absolute top-2/3 left-12 w-5 h-0.5 bg-muted-foreground/10 rotate-12" />
+      <BouncingShape initialX={400} initialY={96} speedX={0.6} speedY={1.1}>
+        <div className="w-6 h-0.5 bg-muted-foreground/15 rotate-45" />
+      </BouncingShape>
+      <BouncingShape initialX={750} initialY={550} speedX={-0.7} speedY={-0.8}>
+        <div className="w-8 h-0.5 bg-muted-foreground/15 -rotate-12" />
+      </BouncingShape>
+      <BouncingShape initialX={48} initialY={400} speedX={1.0} speedY={0.5}>
+        <div className="w-5 h-0.5 bg-muted-foreground/10 rotate-12" />
+      </BouncingShape>
       
       {/* Play triangles */}
-      <div className="absolute top-1/3 right-12 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[10px] border-l-muted-foreground/20" />
-      <div className="absolute bottom-1/3 left-1/3 w-0 h-0 border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent border-l-[12px] border-l-accent/15" />
+      <BouncingShape initialX={950} initialY={200} speedX={-0.9} speedY={1.0}>
+        <div className="w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[10px] border-l-muted-foreground/20" />
+      </BouncingShape>
+      <BouncingShape initialX={350} initialY={480} speedX={0.8} speedY={-0.7}>
+        <div className="w-0 h-0 border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent border-l-[12px] border-l-accent/15" />
+      </BouncingShape>
     </div>
   );
 };
