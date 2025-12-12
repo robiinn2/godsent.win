@@ -72,97 +72,141 @@ const Register = () => {
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
       
-      <main className="flex-1 container mx-auto px-4 py-8 max-w-md">
-        <InfoCard title="Register">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name" className="text-foreground">Name</Label>
-              <Input 
-                id="name" 
-                type="text" 
-                placeholder="Enter your name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="bg-secondary border-border text-foreground"
-              />
+      <main className="flex-1 container mx-auto px-4 py-8 max-w-3xl">
+        <h1 className="text-2xl font-semibold text-foreground mb-6">Register</h1>
+        
+        <div className="border border-border">
+          <form onSubmit={handleSubmit}>
+            {/* Name Row */}
+            <div className="flex flex-col sm:flex-row border-b border-border">
+              <div className="sm:w-2/5 bg-secondary/50 px-4 py-3 flex items-center">
+                <Label htmlFor="name" className="text-foreground/80 text-sm">
+                  Name:
+                </Label>
+              </div>
+              <div className="sm:w-3/5 bg-card px-4 py-3">
+                <Input 
+                  id="name" 
+                  type="text" 
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="bg-secondary border-border text-foreground h-9"
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="username" className="text-foreground">Username</Label>
-              <Input 
-                id="username" 
-                type="text" 
-                placeholder="Enter username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="bg-secondary border-border text-foreground"
-              />
+            {/* Username Row */}
+            <div className="flex flex-col sm:flex-row border-b border-border">
+              <div className="sm:w-2/5 bg-secondary/50 px-4 py-3 flex items-center">
+                <Label htmlFor="username" className="text-foreground/80 text-sm">
+                  Username:
+                </Label>
+              </div>
+              <div className="sm:w-3/5 bg-card px-4 py-3">
+                <Input 
+                  id="username" 
+                  type="text" 
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="bg-secondary border-border text-foreground h-9"
+                />
+              </div>
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-foreground">Email</Label>
-              <Input 
-                id="email" 
-                type="email" 
-                placeholder="Enter email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="bg-secondary border-border text-foreground"
-              />
+            {/* Email Row */}
+            <div className="flex flex-col sm:flex-row border-b border-border">
+              <div className="sm:w-2/5 bg-secondary/50 px-4 py-3 flex items-center">
+                <Label htmlFor="email" className="text-foreground/80 text-sm">
+                  Email:
+                </Label>
+              </div>
+              <div className="sm:w-3/5 bg-card px-4 py-3">
+                <Input 
+                  id="email" 
+                  type="email" 
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="bg-secondary border-border text-foreground h-9"
+                />
+              </div>
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-foreground">Password</Label>
-              <Input 
-                id="password" 
-                type="password" 
-                placeholder="Enter password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="bg-secondary border-border text-foreground"
-              />
+            {/* Password Row */}
+            <div className="flex flex-col sm:flex-row border-b border-border">
+              <div className="sm:w-2/5 bg-secondary/50 px-4 py-3 flex items-center">
+                <Label htmlFor="password" className="text-foreground/80 text-sm">
+                  Password:
+                </Label>
+              </div>
+              <div className="sm:w-3/5 bg-card px-4 py-3">
+                <Input 
+                  id="password" 
+                  type="password" 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="bg-secondary border-border text-foreground h-9"
+                />
+              </div>
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="confirm-password" className="text-foreground">Confirm Password</Label>
-              <Input 
-                id="confirm-password" 
-                type="password" 
-                placeholder="Confirm password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="bg-secondary border-border text-foreground"
-              />
+            {/* Confirm Password Row */}
+            <div className="flex flex-col sm:flex-row border-b border-border">
+              <div className="sm:w-2/5 bg-secondary/50 px-4 py-3 flex items-center">
+                <Label htmlFor="confirm-password" className="text-foreground/80 text-sm">
+                  Confirm Password:
+                </Label>
+              </div>
+              <div className="sm:w-3/5 bg-card px-4 py-3">
+                <Input 
+                  id="confirm-password" 
+                  type="password" 
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="bg-secondary border-border text-foreground h-9"
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="invitation-code" className="text-foreground">Invitation Key</Label>
-              <Input 
-                id="invitation-code" 
-                type="text" 
-                placeholder="Enter invitation key (e.g., Godsent-XXXX-XXXX-XXXX-XXXX)"
-                value={invitationCode}
-                onChange={(e) => setInvitationCode(e.target.value)}
-                className="bg-secondary border-border text-foreground"
-              />
+            {/* Invitation Key Row */}
+            <div className="flex flex-col sm:flex-row border-b border-border">
+              <div className="sm:w-2/5 bg-secondary/50 px-4 py-3 flex items-center">
+                <Label htmlFor="invitation-code" className="text-foreground/80 text-sm">
+                  Invitation Key:
+                </Label>
+              </div>
+              <div className="sm:w-3/5 bg-card px-4 py-3">
+                <Input 
+                  id="invitation-code" 
+                  type="text" 
+                  value={invitationCode}
+                  onChange={(e) => setInvitationCode(e.target.value)}
+                  className="bg-secondary border-border text-foreground h-9"
+                />
+              </div>
             </div>
             
-            <Button 
-              type="submit" 
-              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-              disabled={loading}
-            >
-              {loading ? "Registering..." : "Register"}
-            </Button>
-            
-            <p className="text-center text-muted-foreground text-sm">
-              Already have an account?{" "}
-              <NavLink to="/login" className="text-link hover:text-link-hover transition-colors">
-                Login
-              </NavLink>
-            </p>
+            {/* Submit Row */}
+            <div className="flex flex-col sm:flex-row">
+              <div className="sm:w-2/5 bg-secondary/50 px-4 py-3 hidden sm:block"></div>
+              <div className="sm:w-3/5 bg-card px-4 py-4">
+                <Button 
+                  type="submit" 
+                  className="bg-primary/80 hover:bg-primary text-primary-foreground px-6"
+                  disabled={loading}
+                >
+                  {loading ? "Registering..." : "Register"}
+                </Button>
+              </div>
+            </div>
           </form>
-        </InfoCard>
+        </div>
+        
+        <div className="mt-4 text-center text-muted-foreground text-sm">
+          Already have an account?{" "}
+          <NavLink to="/login" className="text-link hover:text-link-hover transition-colors underline">
+            Login
+          </NavLink>
+        </div>
       </main>
       
       <Footer />
