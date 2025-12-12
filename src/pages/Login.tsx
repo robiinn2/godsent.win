@@ -53,49 +53,69 @@ const Login = () => {
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
       
-      <main className="flex-1 container mx-auto px-4 py-8 max-w-md">
-        <InfoCard title="Login">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="username" className="text-foreground">Username</Label>
-              <Input 
-                id="username" 
-                type="text" 
-                placeholder="Enter username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="bg-secondary border-border text-foreground"
-              />
+      <main className="flex-1 container mx-auto px-4 py-8 max-w-3xl">
+        <h1 className="text-2xl font-semibold text-foreground mb-6">Log in</h1>
+        
+        <div className="border border-border">
+          <form onSubmit={handleSubmit}>
+            {/* Username Row */}
+            <div className="flex flex-col sm:flex-row border-b border-border">
+              <div className="sm:w-2/5 bg-secondary/50 px-4 py-3 flex items-center">
+                <Label htmlFor="username" className="text-foreground/80 text-sm">
+                  Username:
+                </Label>
+              </div>
+              <div className="sm:w-3/5 bg-card px-4 py-3">
+                <Input 
+                  id="username" 
+                  type="text" 
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="bg-secondary border-border text-foreground h-9"
+                />
+              </div>
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-foreground">Password</Label>
-              <Input 
-                id="password" 
-                type="password" 
-                placeholder="Enter password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="bg-secondary border-border text-foreground"
-              />
+            {/* Password Row */}
+            <div className="flex flex-col sm:flex-row border-b border-border">
+              <div className="sm:w-2/5 bg-secondary/50 px-4 py-3 flex items-center">
+                <Label htmlFor="password" className="text-foreground/80 text-sm">
+                  Password:
+                </Label>
+              </div>
+              <div className="sm:w-3/5 bg-card px-4 py-3">
+                <Input 
+                  id="password" 
+                  type="password" 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="bg-secondary border-border text-foreground h-9"
+                />
+              </div>
             </div>
             
-            <Button 
-              type="submit" 
-              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-              disabled={loading}
-            >
-              {loading ? "Logging in..." : "Login"}
-            </Button>
-            
-            <p className="text-center text-muted-foreground text-sm">
-              Don't have an account?{" "}
-              <NavLink to="/register" className="text-link hover:text-link-hover transition-colors">
-                Register
-              </NavLink>
-            </p>
+            {/* Submit Row */}
+            <div className="flex flex-col sm:flex-row">
+              <div className="sm:w-2/5 bg-secondary/50 px-4 py-3 hidden sm:block"></div>
+              <div className="sm:w-3/5 bg-card px-4 py-4">
+                <Button 
+                  type="submit" 
+                  className="bg-primary/80 hover:bg-primary text-primary-foreground px-6"
+                  disabled={loading}
+                >
+                  {loading ? "Logging in..." : "Log in"}
+                </Button>
+              </div>
+            </div>
           </form>
-        </InfoCard>
+        </div>
+        
+        <div className="mt-4 text-center text-muted-foreground text-sm">
+          Don't have an account?{" "}
+          <NavLink to="/register" className="text-link hover:text-link-hover transition-colors underline">
+            Register now
+          </NavLink>
+        </div>
       </main>
       
       <Footer />
