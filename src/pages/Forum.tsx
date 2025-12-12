@@ -834,7 +834,7 @@ const Forum = () => {
                     <p className="text-sm text-muted-foreground">{selectedSection.description}</p>
                   </div>
                   
-                  {(selectedSection.slug === 'questions' || isAdmin || (isElder && selectedSection.slug === 'announcements')) && (
+                  {(selectedSection.slug === 'questions' || (isAdmin && (selectedSection.slug === 'announcements' || selectedSection.slug === 'updates'))) && (
                     <Button 
                       onClick={() => setShowNewPost(!showNewPost)}
                       variant={showNewPost ? "outline" : "default"}
