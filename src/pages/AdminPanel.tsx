@@ -64,6 +64,24 @@ interface SupportTicket {
   }>;
 }
 
+interface BannedUser {
+  user_id: string;
+  banned_at: string;
+  banned_by: string;
+  banned_by_username: string;
+  reason: string;
+  ban_type: string;
+  suspended_until: string | null;
+  appeal_deadline: string | null;
+  appeal_submitted: boolean;
+  profile?: {
+    username: string;
+    email: string;
+    name: string;
+    created_at: string;
+  };
+}
+
 const EXPIRATION_OPTIONS = [
   { value: "1", label: "1 Day" },
   { value: "3", label: "3 Days" },
@@ -71,6 +89,14 @@ const EXPIRATION_OPTIONS = [
   { value: "14", label: "14 Days" },
   { value: "30", label: "30 Days" },
   { value: "never", label: "Never" },
+];
+
+const SUSPENSION_OPTIONS = [
+  { value: "1", label: "1 Day" },
+  { value: "3", label: "3 Days" },
+  { value: "7", label: "7 Days" },
+  { value: "14", label: "14 Days" },
+  { value: "30", label: "30 Days" },
 ];
 
 const AdminPanel = () => {
@@ -87,10 +113,17 @@ const AdminPanel = () => {
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [responseMessage, setResponseMessage] = useState("");
-  const [banDialogOpen, setBanDialogOpen] = useState(false);
-  const [banType, setBanType] = useState<"temporary" | "permanent">("temporary");
-  const [banReason, setBanReason] = useState("");
+  const [bannedUsers, setBannedUsers] = useState<BannedUser[]>([]);
+  
+  // Suspend dialog state
+  const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
+  const [suspendDays, setSuspendDays] = useState("7");
+  const [suspendReason, setSuspendReason] = useState("");
   const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
+  
+  // Ban dialog state
+  const [banDialogOpen, setBanDialogOpen] = useState(false);
+  const [banReason, setBanReason] = useState("");
   
   // Key generation state
   const [keyDialogOpen, setKeyDialogOpen] = useState(false);
@@ -113,6 +146,7 @@ const AdminPanel = () => {
       loadKeys();
       loadUserGrants();
       loadTickets();
+      loadBannedUsers();
     }
   }, [user, isAdmin]);
 
@@ -205,6 +239,26 @@ const AdminPanel = () => {
     if (data) setTickets(data as any);
   };
 
+  const loadBannedUsers = async () => {
+    const { data: banned } = await supabase
+      .from('banned_users')
+      .select('*')
+      .order('banned_at', { ascending: false });
+    
+    if (banned) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, username, email, name, created_at');
+      
+      const bannedWithProfiles = banned.map(b => ({
+        ...b,
+        profile: profiles?.find(p => p.id === b.user_id)
+      }));
+      
+      setBannedUsers(bannedWithProfiles);
+    }
+  };
+
   const generateKey = async () => {
     setGenerating(true);
     
@@ -242,27 +296,95 @@ const AdminPanel = () => {
     loadKeys();
   };
 
-  const handleBanUser = async () => {
-    if (!selectedUser || !banReason) return;
-    const wipeDate = banType === 'permanent' ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() : null;
+  const openSuspendDialog = (profile: Profile) => {
+    setSelectedUser(profile);
+    setSuspendDays("7");
+    setSuspendReason("");
+    setSuspendDialogOpen(true);
+  };
+
+  const openBanDialog = (profile: Profile) => {
+    setSelectedUser(profile);
+    setBanReason("");
+    setBanDialogOpen(true);
+  };
+
+  const handleSuspendUser = async () => {
+    if (!selectedUser || !suspendReason) return;
+    
+    const { data: adminProfile } = await supabase
+      .from('profiles')
+      .select('username')
+      .eq('id', user!.id)
+      .single();
+    
+    const suspendedUntil = new Date(Date.now() + parseInt(suspendDays) * 24 * 60 * 60 * 1000).toISOString();
+    
     await supabase.from('banned_users').insert({
       user_id: selectedUser.id,
       banned_by: user!.id,
-      banned_by_username: 'sandro',
-      reason: banReason,
-      ban_type: banType,
-      wipe_date: wipeDate,
+      banned_by_username: adminProfile?.username || 'Admin',
+      reason: suspendReason,
+      ban_type: 'suspended',
+      suspended_until: suspendedUntil,
     });
+    
+    toast({ title: "Success", description: `${selectedUser.username} suspended for ${suspendDays} days` });
+    setSuspendDialogOpen(false);
+    loadBannedUsers();
+  };
+
+  const handleBanUser = async () => {
+    if (!selectedUser || !banReason) return;
+    
+    const { data: adminProfile } = await supabase
+      .from('profiles')
+      .select('username')
+      .eq('id', user!.id)
+      .single();
+    
+    // Set appeal deadline to 30 days from now
+    const appealDeadline = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    
+    await supabase.from('banned_users').insert({
+      user_id: selectedUser.id,
+      banned_by: user!.id,
+      banned_by_username: adminProfile?.username || 'Admin',
+      reason: banReason,
+      ban_type: 'banned',
+      appeal_deadline: appealDeadline,
+    });
+    
     toast({ title: "Success", description: `${selectedUser.username} banned` });
     setBanDialogOpen(false);
-    loadUsers();
+    loadBannedUsers();
+  };
+
+  const handleUnsuspend = async (userId: string, username: string) => {
+    if (!confirm(`Unsuspend ${username}?`)) return;
+    await supabase.from('banned_users').delete().eq('user_id', userId);
+    toast({ title: "Success", description: `${username} unsuspended` });
+    loadBannedUsers();
+  };
+
+  const handleUnban = async (userId: string, username: string) => {
+    if (!confirm(`Unban ${username}?`)) return;
+    await supabase.from('banned_users').delete().eq('user_id', userId);
+    toast({ title: "Success", description: `${username} unbanned` });
+    loadBannedUsers();
   };
 
   const handleTerminateAccount = async (userId: string, username: string) => {
-    if (!confirm(`PERMANENTLY DELETE ${username}?`)) return;
+    if (!confirm(`PERMANENTLY DELETE ${username}? This cannot be undone.`)) return;
+    
+    // Delete from banned_users first
+    await supabase.from('banned_users').delete().eq('user_id', userId);
+    // Delete profile (will cascade to other tables)
     await supabase.from('profiles').delete().eq('id', userId);
+    
     toast({ title: "Success", description: `${username} terminated` });
     loadUsers();
+    loadBannedUsers();
   };
 
   const openGrantDialog = (profile: Profile) => {
@@ -350,6 +472,10 @@ const AdminPanel = () => {
     return date.toLocaleDateString();
   };
 
+  const isUserBanned = (userId: string) => {
+    return bannedUsers.some(b => b.user_id === userId);
+  };
+
   if (loading || !user || !isAdmin) return null;
 
   return (
@@ -358,11 +484,14 @@ const AdminPanel = () => {
       <main className="flex-1 container mx-auto px-4 py-8 max-w-7xl">
         <h1 className="text-3xl font-bold text-foreground mb-6">Admin Panel</h1>
         <Tabs defaultValue="users">
-          <TabsList className="grid w-full grid-cols-3 bg-card">
+          <TabsList className="grid w-full grid-cols-4 bg-card">
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="keys">Keys</TabsTrigger>
+            <TabsTrigger value="bans">Bans</TabsTrigger>
             <TabsTrigger value="tickets">Tickets</TabsTrigger>
           </TabsList>
+          
+          {/* Users Tab */}
           <TabsContent value="users">
             <InfoCard title="Manage Users">
               <div className="flex gap-4 mb-4">
@@ -377,7 +506,7 @@ const AdminPanel = () => {
               </div>
               <div className="space-y-2">
                 {filteredUsers.map((profile) => (
-                  <div key={profile.id} className="p-4 bg-card border border-border rounded flex justify-between items-center">
+                  <div key={profile.id} className={`p-4 bg-card border border-border rounded flex justify-between items-center ${isUserBanned(profile.id) ? 'opacity-50' : ''}`}>
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded font-mono font-bold">ID: {userSequentialIds.get(profile.id)}</span>
@@ -387,6 +516,9 @@ const AdminPanel = () => {
                           profile.role === 'elder' ? 'bg-accent text-accent-foreground' : 
                           'bg-muted text-muted-foreground'
                         }`}>{profile.role || 'user'}</span>
+                        {isUserBanned(profile.id) && (
+                          <span className="text-xs px-2 py-1 rounded bg-destructive text-destructive-foreground">BANNED/SUSPENDED</span>
+                        )}
                       </div>
                       <p className="text-sm text-muted-foreground">Email: {profile.email}</p>
                       <p className="text-sm text-muted-foreground">Name: {profile.name}</p>
@@ -398,14 +530,16 @@ const AdminPanel = () => {
                         {profile.role === 'user' ? 'Promote to Elder' : profile.role === 'elder' ? 'Promote to Admin' : 'Max Rank'}
                       </Button>
                       <Button size="sm" variant="outline" onClick={() => openGrantDialog(profile)} disabled={profile.id === user.id}>Grant Invite</Button>
-                      <Button size="sm" variant="destructive" onClick={() => { setSelectedUser(profile); setBanDialogOpen(true); }} disabled={profile.id === user.id}>Ban</Button>
-                      <Button size="sm" variant="destructive" onClick={() => handleTerminateAccount(profile.id, profile.username)} disabled={profile.id === user.id}>Terminate</Button>
+                      <Button size="sm" variant="secondary" onClick={() => openSuspendDialog(profile)} disabled={profile.id === user.id || isUserBanned(profile.id)}>Suspend</Button>
+                      <Button size="sm" variant="destructive" onClick={() => openBanDialog(profile)} disabled={profile.id === user.id || isUserBanned(profile.id)}>Ban</Button>
                     </div>
                   </div>
                 ))}
               </div>
             </InfoCard>
           </TabsContent>
+          
+          {/* Keys Tab */}
           <TabsContent value="keys">
             <InfoCard title="Invitation Keys">
               <div className="flex items-center gap-4 mb-4">
@@ -473,19 +607,90 @@ const AdminPanel = () => {
               </div>
             </InfoCard>
           </TabsContent>
+          
+          {/* Bans Tab */}
+          <TabsContent value="bans">
+            <InfoCard title="Banned & Suspended Users">
+              {bannedUsers.length === 0 ? (
+                <p className="text-muted-foreground">No banned or suspended users.</p>
+              ) : (
+                <div className="space-y-2">
+                  {bannedUsers.map((banned) => {
+                    const isSuspended = banned.ban_type === 'suspended';
+                    const suspensionExpired = isSuspended && banned.suspended_until && new Date(banned.suspended_until) < new Date();
+                    
+                    return (
+                      <div key={banned.user_id} className="p-4 bg-card border border-border rounded">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className={`text-xs px-2 py-1 rounded ${isSuspended ? 'bg-yellow-500/20 text-yellow-500' : 'bg-destructive text-destructive-foreground'}`}>
+                                {isSuspended ? 'SUSPENDED' : 'BANNED'}
+                              </span>
+                              {suspensionExpired && (
+                                <span className="text-xs px-2 py-1 rounded bg-accent/20 text-accent-foreground">EXPIRED</span>
+                              )}
+                              {banned.appeal_submitted && (
+                                <span className="text-xs px-2 py-1 rounded bg-accent/20 text-accent-foreground">APPEAL SUBMITTED</span>
+                              )}
+                            </div>
+                            <p className="font-bold text-foreground text-lg">{banned.profile?.username || 'Unknown'}</p>
+                            <p className="text-sm text-muted-foreground">Email: {banned.profile?.email}</p>
+                            <p className="text-sm text-muted-foreground">Name: {banned.profile?.name}</p>
+                            <p className="text-xs text-muted-foreground">Joined: {banned.profile?.created_at ? new Date(banned.profile.created_at).toLocaleDateString() : 'Unknown'}</p>
+                            <div className="mt-2 p-2 bg-secondary rounded">
+                              <p className="text-sm text-foreground"><span className="font-semibold">Reason:</span> {banned.reason}</p>
+                              <p className="text-xs text-muted-foreground">By: {banned.banned_by_username} on {new Date(banned.banned_at).toLocaleDateString()}</p>
+                              {isSuspended && banned.suspended_until && (
+                                <p className="text-xs text-muted-foreground">Until: {new Date(banned.suspended_until).toLocaleString()}</p>
+                              )}
+                              {!isSuspended && banned.appeal_deadline && (
+                                <p className="text-xs text-destructive">Auto-terminate if no appeal by: {new Date(banned.appeal_deadline).toLocaleDateString()}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            {isSuspended ? (
+                              <Button size="sm" variant="outline" onClick={() => handleUnsuspend(banned.user_id, banned.profile?.username || 'Unknown')}>
+                                Unsuspend
+                              </Button>
+                            ) : (
+                              <Button size="sm" variant="outline" onClick={() => handleUnban(banned.user_id, banned.profile?.username || 'Unknown')}>
+                                Unban
+                              </Button>
+                            )}
+                            <Button size="sm" variant="destructive" onClick={() => handleTerminateAccount(banned.user_id, banned.profile?.username || 'Unknown')}>
+                              Delete Account
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </InfoCard>
+          </TabsContent>
+          
+          {/* Tickets Tab */}
           <TabsContent value="tickets">
             <InfoCard title="Support Tickets">
               <div className="space-y-4">
                 {tickets.map((ticket) => (
-                  <div key={ticket.id} className="p-4 bg-card border border-border rounded">
+                  <div key={ticket.id} className={`p-4 bg-card border rounded ${ticket.subject === 'Unban Appeal' ? 'border-destructive' : 'border-border'}`}>
                     <div className="flex justify-between mb-2">
                       <div>
-                        <h4 className="font-bold text-foreground">{ticket.subject}</h4>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-bold text-foreground">{ticket.subject}</h4>
+                          {ticket.subject === 'Unban Appeal' && (
+                            <span className="text-xs px-2 py-1 rounded bg-destructive text-destructive-foreground">APPEAL</span>
+                          )}
+                        </div>
                         <p className="text-sm text-muted-foreground">From: {ticket.profiles.username}</p>
                       </div>
-                      <span className={`text-xs px-2 py-1 rounded ${ticket.status === 'open' ? 'bg-accent/20 text-accent-foreground' : 'bg-accent/20 text-accent-foreground'}`}>{ticket.status}</span>
+                      <span className={`text-xs px-2 py-1 rounded ${ticket.status === 'open' ? 'bg-accent/20 text-accent-foreground' : 'bg-muted text-muted-foreground'}`}>{ticket.status}</span>
                     </div>
-                    <p className="text-foreground mb-2">{ticket.message}</p>
+                    <p className="text-foreground mb-2 whitespace-pre-wrap">{ticket.message}</p>
                     {ticket.ticket_responses?.[0] && (
                       <div className="mt-2 p-2 bg-secondary rounded">
                         <p className="text-sm text-foreground">{ticket.ticket_responses[0].message}</p>
@@ -497,7 +702,7 @@ const AdminPanel = () => {
                 {selectedTicket && (
                   <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
                     <div className="bg-card p-6 rounded-lg max-w-md w-full border border-border">
-                      <h3 className="font-bold text-foreground mb-4">Respond</h3>
+                      <h3 className="font-bold text-foreground mb-4">Respond to {selectedTicket.subject}</h3>
                       <Textarea value={responseMessage} onChange={(e) => setResponseMessage(e.target.value)} placeholder="Response..." rows={5} className="bg-secondary mb-4" />
                       <div className="flex gap-2">
                         <Button onClick={respondToTicket}>Send</Button>
@@ -511,22 +716,49 @@ const AdminPanel = () => {
           </TabsContent>
         </Tabs>
         
+        {/* Suspend Dialog */}
+        <Dialog open={suspendDialogOpen} onOpenChange={setSuspendDialogOpen}>
+          <DialogContent className="bg-card">
+            <DialogHeader>
+              <DialogTitle>Suspend User: {selectedUser?.username}</DialogTitle>
+              <DialogDescription>Temporarily suspend this user</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Suspension Duration</Label>
+                <Select value={suspendDays} onValueChange={setSuspendDays}>
+                  <SelectTrigger className="bg-secondary mt-2"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {SUSPENSION_OPTIONS.map(opt => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Reason</Label>
+                <Textarea value={suspendReason} onChange={(e) => setSuspendReason(e.target.value)} placeholder="Reason for suspension..." className="bg-secondary mt-2" />
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={handleSuspendUser} variant="secondary">Suspend</Button>
+                <Button variant="outline" onClick={() => setSuspendDialogOpen(false)}>Cancel</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+        
         {/* Ban Dialog */}
         <Dialog open={banDialogOpen} onOpenChange={setBanDialogOpen}>
           <DialogContent className="bg-card">
             <DialogHeader>
               <DialogTitle>Ban User: {selectedUser?.username}</DialogTitle>
-              <DialogDescription>Choose type and reason</DialogDescription>
+              <DialogDescription>Permanently ban this user (30 days to appeal)</DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
-              <Select value={banType} onValueChange={(v: any) => setBanType(v)}>
-                <SelectTrigger className="bg-secondary"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="temporary">Temporary</SelectItem>
-                  <SelectItem value="permanent">Permanent (7 day appeal)</SelectItem>
-                </SelectContent>
-              </Select>
-              <Textarea value={banReason} onChange={(e) => setBanReason(e.target.value)} placeholder="Reason..." className="bg-secondary" />
+              <div>
+                <Label>Reason</Label>
+                <Textarea value={banReason} onChange={(e) => setBanReason(e.target.value)} placeholder="Reason for ban..." className="bg-secondary mt-2" />
+              </div>
               <div className="flex gap-2">
                 <Button onClick={handleBanUser} variant="destructive">Ban</Button>
                 <Button variant="outline" onClick={() => setBanDialogOpen(false)}>Cancel</Button>
