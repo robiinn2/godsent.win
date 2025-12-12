@@ -2,7 +2,6 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import InfoCard from "@/components/InfoCard";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Newspaper, HelpCircle, ArrowUp, Send, Paperclip, Download, Trash2 } from "lucide-react";
+import { Newspaper, HelpCircle, ArrowUp, Send, Paperclip, Download, Trash2, MessageSquare } from "lucide-react";
 
 interface ForumSection {
   id: string;
@@ -67,8 +66,41 @@ const getSectionIcon = (slug: string) => {
     case 'updates':
       return <ArrowUp className="w-4 h-4" />;
     default:
-      return null;
+      return <MessageSquare className="w-4 h-4" />;
   }
+};
+
+// Floating shapes component for memesense style background
+const FloatingShapes = () => {
+  return (
+    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+      {/* Circles */}
+      <div className="absolute top-20 right-1/4 w-6 h-6 border border-muted-foreground/20 rounded-full animate-pulse" />
+      <div className="absolute top-40 right-20 w-8 h-8 border border-accent/30 rounded-full" />
+      <div className="absolute top-60 left-20 w-4 h-4 border border-muted-foreground/20 rounded-full" />
+      <div className="absolute bottom-40 right-1/3 w-5 h-5 border border-muted-foreground/15 rounded-full" />
+      <div className="absolute bottom-60 left-1/4 w-7 h-7 border border-accent/20 rounded-full" />
+      
+      {/* Triangles (using borders) */}
+      <div className="absolute top-32 left-40 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[14px] border-b-muted-foreground/15" />
+      <div className="absolute top-80 right-40 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[10px] border-b-accent/20" />
+      <div className="absolute bottom-32 left-32 w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-b-[16px] border-b-muted-foreground/10" />
+      
+      {/* X marks */}
+      <div className="absolute top-48 left-16 text-destructive/30 text-lg font-bold">×</div>
+      <div className="absolute bottom-48 right-24 text-destructive/25 text-xl font-bold">×</div>
+      <div className="absolute top-1/2 right-16 text-destructive/20 text-lg font-bold">×</div>
+      
+      {/* Lines/dashes */}
+      <div className="absolute top-24 left-1/3 w-6 h-0.5 bg-muted-foreground/15 rotate-45" />
+      <div className="absolute bottom-24 right-1/4 w-8 h-0.5 bg-muted-foreground/15 -rotate-12" />
+      <div className="absolute top-2/3 left-12 w-5 h-0.5 bg-muted-foreground/10 rotate-12" />
+      
+      {/* Play triangles */}
+      <div className="absolute top-1/3 right-12 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[10px] border-l-muted-foreground/20" />
+      <div className="absolute bottom-1/3 left-1/3 w-0 h-0 border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent border-l-[12px] border-l-accent/15" />
+    </div>
+  );
 };
 
 const Forum = () => {
@@ -497,16 +529,17 @@ const Forum = () => {
   // Full screen post view
   if (viewingPost) {
     return (
-      <div className="min-h-screen flex flex-col bg-background">
+      <div className="min-h-screen flex flex-col bg-background relative">
+        <FloatingShapes />
         <Header onLogoClick={closePost} />
         
-        <main className="flex-1 container mx-auto px-4 py-8 max-w-4xl">
+        <main className="flex-1 container mx-auto px-4 py-8 max-w-4xl relative z-10">
           {/* Original Post */}
-          <div className="bg-card border border-border rounded mb-6">
+          <div className="bg-card border border-border mb-6">
             <div className="flex">
               {/* Left side - User info */}
               <div className="w-32 md:w-48 flex-shrink-0 bg-secondary/50 p-4 flex flex-col items-center justify-start border-r border-border">
-                <div className="w-16 h-16 md:w-24 md:h-24 rounded-full overflow-hidden border-2 border-border mb-3">
+                <div className="w-16 h-16 md:w-24 md:h-24 overflow-hidden border-2 border-border mb-3">
                   <img 
                     src={viewingPost.profiles.pfp_url || '/default-pfp.png'} 
                     alt={viewingPost.profiles.username} 
@@ -517,7 +550,7 @@ const Forum = () => {
                   <p className="font-bold text-foreground text-sm truncate">{viewingPost.profiles.username}</p>
                   <p className="text-xs text-muted-foreground">ID: #{viewingPost.authorSequentialId || getSequentialId(viewingPost.author_id)}</p>
                   <p className={`text-xs font-semibold capitalize ${
-                    viewingPost.authorRole === 'admin' ? 'text-red-500' : 
+                    viewingPost.authorRole === 'admin' ? 'text-destructive' : 
                     viewingPost.authorRole === 'elder' ? 'text-purple-500' : 
                     'text-muted-foreground'
                   }`}>{viewingPost.authorRole || 'user'}</p>
@@ -556,7 +589,7 @@ const Forum = () => {
                     download={viewingPost.file_name}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-3 py-2 bg-secondary rounded border border-border hover:bg-secondary/80 transition-colors w-fit"
+                    className="inline-flex items-center gap-2 px-3 py-2 bg-secondary border border-border hover:bg-secondary/80 transition-colors w-fit"
                   >
                     <Download className="w-4 h-4" />
                     <span className="text-sm">{viewingPost.file_name}</span>
@@ -578,11 +611,11 @@ const Forum = () => {
             ) : (
               <div className="space-y-4">
                 {replies.map((reply) => (
-                  <div key={reply.id} className="bg-card border border-border rounded">
+                  <div key={reply.id} className="bg-card border border-border">
                     <div className="flex">
                       {/* Left side - User info */}
                       <div className="w-24 md:w-36 flex-shrink-0 bg-secondary/50 p-3 flex flex-col items-center justify-start border-r border-border">
-                        <div className="w-10 h-10 md:w-14 md:h-14 rounded-full overflow-hidden border border-border mb-2">
+                        <div className="w-10 h-10 md:w-14 md:h-14 overflow-hidden border border-border mb-2">
                           <img 
                             src={reply.profiles.pfp_url || '/default-pfp.png'} 
                             alt={reply.profiles.username} 
@@ -593,7 +626,7 @@ const Forum = () => {
                           <p className="font-bold text-foreground text-xs truncate">{reply.profiles.username}</p>
                           <p className="text-[10px] text-muted-foreground">#{reply.authorSequentialId}</p>
                           <p className={`text-[10px] font-semibold capitalize ${
-                            reply.authorRole === 'admin' ? 'text-red-500' : 
+                            reply.authorRole === 'admin' ? 'text-destructive' : 
                             reply.authorRole === 'elder' ? 'text-purple-500' : 
                             'text-muted-foreground'
                           }`}>{reply.authorRole || 'user'}</p>
@@ -615,7 +648,7 @@ const Forum = () => {
           </div>
 
           {/* Reply Input */}
-          <form onSubmit={handleSubmitReply} className="bg-card border border-border rounded p-4">
+          <form onSubmit={handleSubmitReply} className="bg-card border border-border p-4">
             <div className="flex gap-3">
               <Textarea
                 value={newReply}
@@ -637,149 +670,166 @@ const Forum = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-background relative">
+      <FloatingShapes />
       <Header />
       
-      <main className="flex-1 container mx-auto px-4 py-8 max-w-6xl">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          {/* Sections Sidebar */}
-          <div className="md:col-span-1">
-            <InfoCard title="Forum Sections">
-              <div className="space-y-4">
-                {Object.entries(SECTION_CATEGORIES).map(([category, slugs]) => {
-                  const categorySections = sections.filter(s => slugs.includes(s.slug));
-                  if (categorySections.length === 0) return null;
-                  
-                  return (
-                    <div key={category}>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2 px-2">
+      <main className="flex-1 container mx-auto px-4 py-8 relative z-10">
+        <div className="flex gap-6">
+          {/* Memesense-style Sidebar */}
+          <div className="w-64 flex-shrink-0">
+            <div className="bg-card border border-border">
+              {/* All threads button */}
+              <button
+                onClick={() => setSelectedSection(null)}
+                className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors border-b border-border ${
+                  !selectedSection
+                    ? 'bg-secondary text-foreground'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                }`}
+              >
+                <MessageSquare className="w-4 h-4" />
+                <span className="text-sm">All threads</span>
+              </button>
+              
+              {/* Category sections */}
+              {Object.entries(SECTION_CATEGORIES).map(([category, slugs]) => {
+                const categorySections = sections.filter(s => slugs.includes(s.slug));
+                if (categorySections.length === 0) return null;
+                
+                return (
+                  <div key={category}>
+                    <div className="px-4 py-2 border-b border-border">
+                      <p className="text-xs text-muted-foreground">
                         {category}
                       </p>
-                      <div className="space-y-1">
-                        {categorySections.map((section) => (
-                          <button
-                            key={section.id}
-                            onClick={() => {
-                              setSelectedSection(section);
-                              setShowNewPost(false);
-                            }}
-                            className={`w-full text-left px-3 py-2 rounded transition-colors flex items-center gap-2 ${
-                              selectedSection?.id === section.id
-                                ? 'bg-primary text-primary-foreground'
-                                : 'text-foreground hover:bg-secondary/80'
-                            }`}
-                          >
-                            {getSectionIcon(section.slug)}
-                            <span>{section.name}</span>
-                          </button>
-                        ))}
-                      </div>
                     </div>
-                  );
-                })}
-              </div>
-            </InfoCard>
+                    {categorySections.map((section) => (
+                      <button
+                        key={section.id}
+                        onClick={() => {
+                          setSelectedSection(section);
+                          setShowNewPost(false);
+                        }}
+                        className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors border-b border-border last:border-b-0 ${
+                          selectedSection?.id === section.id
+                            ? 'bg-secondary text-foreground'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                        }`}
+                      >
+                        {getSectionIcon(section.slug)}
+                        <span className="text-sm">{section.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           {/* Posts Area */}
-          <div className="md:col-span-3">
+          <div className="flex-1 min-w-0">
             {selectedSection ? (
-              <>
-                <InfoCard title={selectedSection.name}>
-                  <p className="text-muted-foreground mb-4">{selectedSection.description}</p>
+              <div className="bg-card border border-border p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-xl font-bold text-foreground">{selectedSection.name}</h2>
+                    <p className="text-sm text-muted-foreground">{selectedSection.description}</p>
+                  </div>
                   
                   {(selectedSection.slug === 'questions' || isAdmin || (isElder && selectedSection.slug === 'announcements')) && (
                     <Button 
                       onClick={() => setShowNewPost(!showNewPost)}
-                      className="mb-4"
+                      variant={showNewPost ? "outline" : "default"}
                     >
                       {showNewPost ? 'Cancel' : 'New Post'}
                     </Button>
                   )}
+                </div>
 
-                  {showNewPost && (
-                    <form onSubmit={handleCreatePost} className="space-y-4 mb-6 p-4 bg-card border border-border rounded">
-                      <div className="space-y-2">
-                        <Label htmlFor="title">Title</Label>
-                        <Input
-                          id="title"
-                          value={newPostTitle}
-                          onChange={(e) => setNewPostTitle(e.target.value)}
-                          placeholder="Enter post title"
-                          className="bg-secondary"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="content">Content</Label>
-                        <Textarea
-                          id="content"
-                          value={newPostContent}
-                          onChange={(e) => setNewPostContent(e.target.value)}
-                          placeholder="Enter post content"
-                          rows={5}
-                          className="bg-secondary"
-                        />
-                      </div>
-                      
-                      {/* File attachment */}
-                      <div className="space-y-2">
-                        <Label>Attach File (optional)</Label>
-                        <input
-                          type="file"
-                          ref={fileInputRef}
-                          onChange={handleFileSelect}
-                          className="hidden"
-                        />
-                        <div className="flex items-center gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => fileInputRef.current?.click()}
-                          >
-                            <Paperclip className="w-4 h-4 mr-2" />
-                            {selectedFile ? 'Change File' : 'Attach File'}
-                          </Button>
-                          {selectedFile && (
-                            <span className="text-sm text-muted-foreground">
-                              {selectedFile.name} ({formatFileSize(selectedFile.size)})
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <Button type="submit" disabled={submitting}>
-                        {submitting ? 'Creating...' : 'Create Post'}
-                      </Button>
-                    </form>
-                  )}
-
-                  <div className="space-y-1">
-                    {posts.length === 0 ? (
-                      <p className="text-muted-foreground">No posts yet</p>
-                    ) : (
-                      posts.map((post) => (
-                        <button
-                          key={post.id}
-                          onClick={() => openPost(post)}
-                          className="w-full text-left px-3 py-2 bg-card border border-border rounded hover:bg-secondary/50 transition-colors flex items-center gap-3"
+                {showNewPost && (
+                  <form onSubmit={handleCreatePost} className="space-y-4 mb-6 p-4 bg-secondary border border-border">
+                    <div className="space-y-2">
+                      <Label htmlFor="title">Title</Label>
+                      <Input
+                        id="title"
+                        value={newPostTitle}
+                        onChange={(e) => setNewPostTitle(e.target.value)}
+                        placeholder="Enter post title"
+                        className="bg-background"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="content">Content</Label>
+                      <Textarea
+                        id="content"
+                        value={newPostContent}
+                        onChange={(e) => setNewPostContent(e.target.value)}
+                        placeholder="Enter post content"
+                        rows={5}
+                        className="bg-background"
+                      />
+                    </div>
+                    
+                    {/* File attachment */}
+                    <div className="space-y-2">
+                      <Label>Attach File (optional)</Label>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileSelect}
+                        className="hidden"
+                      />
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => fileInputRef.current?.click()}
                         >
-                          <span className="text-xs text-muted-foreground flex-shrink-0">
-                            {new Date(post.created_at).toLocaleDateString()}
+                          <Paperclip className="w-4 h-4 mr-2" />
+                          {selectedFile ? 'Change File' : 'Attach File'}
+                        </Button>
+                        {selectedFile && (
+                          <span className="text-sm text-muted-foreground">
+                            {selectedFile.name} ({formatFileSize(selectedFile.size)})
                           </span>
-                          <span className="text-foreground hover:underline truncate flex-1">{post.title}</span>
-                          <span className="text-xs text-muted-foreground flex-shrink-0">
-                            by {post.profiles.username}
-                          </span>
-                        </button>
-                      ))
-                    )}
-                  </div>
-                </InfoCard>
-              </>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <Button type="submit" disabled={submitting}>
+                      {submitting ? 'Creating...' : 'Create Post'}
+                    </Button>
+                  </form>
+                )}
+
+                <div className="space-y-1">
+                  {posts.length === 0 ? (
+                    <p className="text-muted-foreground py-8 text-center">No posts yet</p>
+                  ) : (
+                    posts.map((post) => (
+                      <button
+                        key={post.id}
+                        onClick={() => openPost(post)}
+                        className="w-full text-left px-4 py-3 bg-secondary border border-border hover:bg-secondary/70 transition-colors flex items-center gap-4"
+                      >
+                        <span className="text-xs text-muted-foreground flex-shrink-0 w-24">
+                          {new Date(post.created_at).toLocaleDateString()}
+                        </span>
+                        <span className="text-foreground hover:underline truncate flex-1">{post.title}</span>
+                        <span className="text-xs text-muted-foreground flex-shrink-0">
+                          by {post.profiles.username}
+                        </span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
             ) : (
-              <InfoCard title="Welcome to the Forum">
-                <p className="text-foreground">Select a section from the sidebar to view posts</p>
-              </InfoCard>
+              <div className="bg-card border border-border p-6">
+                <h2 className="text-xl font-bold text-foreground mb-2">Welcome to the Forum</h2>
+                <p className="text-muted-foreground">Select a section from the sidebar to view posts</p>
+              </div>
             )}
           </div>
         </div>
