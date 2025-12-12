@@ -53,9 +53,10 @@ const Invite = () => {
       .select('*')
       .eq('user_id', user!.id)
       .gt('invites_remaining', 0)
-      .maybeSingle();
+      .order('granted_at', { ascending: false })
+      .limit(1);
     
-    setInvitation(inviteData);
+    setInvitation(inviteData?.[0] || null);
     
     const { data: keysData } = await supabase
       .from('invitation_codes')
@@ -68,12 +69,15 @@ const Invite = () => {
   };
 
   const generateKey = async () => {
-    const { data: freshInvite } = await supabase
+    const { data: freshInvites } = await supabase
       .from('user_invitations')
       .select('*')
       .eq('user_id', user!.id)
       .gt('invites_remaining', 0)
-      .maybeSingle();
+      .order('granted_at', { ascending: false })
+      .limit(1);
+    
+    const freshInvite = freshInvites?.[0] || null;
     
     if (!freshInvite || freshInvite.invites_remaining <= 0) {
       toast({ title: "Error", description: "No invites remaining", variant: "destructive" });
