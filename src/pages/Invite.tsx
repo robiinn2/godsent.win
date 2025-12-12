@@ -12,6 +12,7 @@ interface UserInvitation {
   id: string;
   invites_remaining: number;
   granted_at: string;
+  expiration_days: number | null;
 }
 
 interface CreatedKey {
@@ -19,6 +20,7 @@ interface CreatedKey {
   created_at: string;
   used_by: string | null;
   used_at: string | null;
+  expires_at: string | null;
 }
 
 const Invite = () => {
@@ -46,7 +48,6 @@ const Invite = () => {
   const loadInvitationData = async () => {
     setLoadingData(true);
     
-    // Get user's invitation grants
     const { data: inviteData } = await supabase
       .from('user_invitations')
       .select('*')
@@ -56,7 +57,6 @@ const Invite = () => {
     
     setInvitation(inviteData);
     
-    // Get keys created by this user
     const { data: keysData } = await supabase
       .from('invitation_codes')
       .select('*')
@@ -68,7 +68,6 @@ const Invite = () => {
   };
 
   const generateKey = async () => {
-    // Re-check invites remaining from database to prevent refresh exploits
     const { data: freshInvite } = await supabase
       .from('user_invitations')
       .select('*')
@@ -84,7 +83,6 @@ const Invite = () => {
 
     setGenerating(true);
     
-    // Get username
     const { data: profile } = await supabase
       .from('profiles')
       .select('username')
@@ -96,13 +94,18 @@ const Invite = () => {
     ).join('');
     const newKey = `Godsent-${randomChars()}-${randomChars()}-${randomChars()}-${randomChars()}`;
     
-    // Create the key
+    // Use the expiration_days set by admin when granting
+    const expiresAt = freshInvite.expiration_days 
+      ? new Date(Date.now() + freshInvite.expiration_days * 24 * 60 * 60 * 1000).toISOString()
+      : null;
+    
     const { error: keyError } = await supabase
       .from('invitation_codes')
       .insert({ 
         key: newKey, 
         created_by: user!.id,
-        creator_username: profile?.username || 'Unknown'
+        creator_username: profile?.username || 'Unknown',
+        expires_at: expiresAt
       });
     
     if (keyError) {
@@ -111,7 +114,6 @@ const Invite = () => {
       return;
     }
     
-    // Decrement invites remaining
     await supabase
       .from('user_invitations')
       .update({ invites_remaining: freshInvite.invites_remaining - 1 })
@@ -120,6 +122,18 @@ const Invite = () => {
     toast({ title: "Success", description: `Key created: ${newKey}` });
     loadInvitationData();
     setGenerating(false);
+  };
+
+  const isKeyExpired = (expiresAt: string | null) => {
+    if (!expiresAt) return false;
+    return new Date(expiresAt) < new Date();
+  };
+
+  const formatExpiration = (expiresAt: string | null) => {
+    if (!expiresAt) return 'Never';
+    const date = new Date(expiresAt);
+    if (date < new Date()) return 'Expired';
+    return date.toLocaleDateString();
   };
 
   if (loading || loadingData) {
@@ -142,8 +156,11 @@ const Invite = () => {
         
         {invitation && invitation.invites_remaining > 0 ? (
           <InfoCard title="Create Invitation Key">
-            <p className="text-muted-foreground mb-4">
+            <p className="text-muted-foreground mb-2">
               You have <span className="text-primary font-bold">{invitation.invites_remaining}</span> invite(s) remaining.
+            </p>
+            <p className="text-sm text-muted-foreground mb-4">
+              Your key will expire in: {invitation.expiration_days ? `${invitation.expiration_days} days` : 'Never'}
             </p>
             
             <Button onClick={generateKey} disabled={generating}>
@@ -163,15 +180,21 @@ const Invite = () => {
             <InfoCard title="Your Created Keys">
               <div className="space-y-2">
                 {createdKeys.map((k) => (
-                  <div key={k.key} className="p-4 bg-card border border-border rounded">
+                  <div key={k.key} className={`p-4 bg-card border border-border rounded ${isKeyExpired(k.expires_at) && !k.used_by ? 'opacity-50' : ''}`}>
                     <p className="font-mono font-bold text-foreground">{k.key}</p>
                     <p className="text-sm text-muted-foreground">
                       Created {new Date(k.created_at).toLocaleDateString()}
                     </p>
+                    <p className="text-xs text-muted-foreground">
+                      Expires: {formatExpiration(k.expires_at)}
+                    </p>
                     <span className={`inline-block mt-1 px-2 py-1 rounded text-xs ${
-                      k.used_by ? 'bg-muted text-muted-foreground' : 'bg-green-500/20 text-green-500'
+                      k.used_by ? 'bg-muted text-muted-foreground' : 
+                      isKeyExpired(k.expires_at) ? 'bg-destructive/20 text-destructive' :
+                      'bg-accent/20 text-accent-foreground'
                     }`}>
-                      {k.used_by ? `Used on ${new Date(k.used_at!).toLocaleDateString()}` : 'Active'}
+                      {k.used_by ? `Used on ${new Date(k.used_at!).toLocaleDateString()}` : 
+                       isKeyExpired(k.expires_at) ? 'Expired' : 'Active'}
                     </span>
                   </div>
                 ))}
