@@ -178,6 +178,9 @@ export type Database = {
           author_id: string
           content: string
           created_at: string | null
+          file_name: string | null
+          file_size: number | null
+          file_url: string | null
           id: string
           section_id: string
           title: string
@@ -187,6 +190,9 @@ export type Database = {
           author_id: string
           content: string
           created_at?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_url?: string | null
           id?: string
           section_id: string
           title: string
@@ -196,6 +202,9 @@ export type Database = {
           author_id?: string
           content?: string
           created_at?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_url?: string | null
           id?: string
           section_id?: string
           title?: string

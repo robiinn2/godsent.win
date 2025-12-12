@@ -12,6 +12,7 @@ interface AuthContextType {
   signIn: (username: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   isAdmin: boolean;
+  isElder: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,6 +22,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isElder, setIsElder] = useState(false);
   const [adminLoading, setAdminLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -32,10 +34,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         if (session?.user) {
           setTimeout(() => {
-            checkAdminStatus(session.user.id);
+            checkRoleStatus(session.user.id);
           }, 0);
         } else {
           setIsAdmin(false);
+          setIsElder(false);
           setAdminLoading(false);
         }
       }
@@ -48,7 +51,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (session?.user) {
         setTimeout(() => {
-          checkAdminStatus(session.user.id);
+          checkRoleStatus(session.user.id);
         }, 0);
       } else {
         setAdminLoading(false);
@@ -58,16 +61,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const checkAdminStatus = async (userId: string) => {
+  const checkRoleStatus = async (userId: string) => {
     setAdminLoading(true);
-    const { data } = await supabase
+    const { data: roles } = await supabase
       .from('user_roles')
       .select('role')
-      .eq('user_id', userId)
-      .eq('role', 'admin')
-      .maybeSingle();
+      .eq('user_id', userId);
     
-    setIsAdmin(!!data);
+    const userRoles = roles?.map(r => r.role) || [];
+    setIsAdmin(userRoles.includes('admin'));
+    setIsElder(userRoles.includes('elder'));
     setAdminLoading(false);
   };
 
@@ -147,7 +150,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, adminLoading, signUp, signIn, signOut, isAdmin }}>
+    <AuthContext.Provider value={{ user, session, loading, adminLoading, signUp, signIn, signOut, isAdmin, isElder }}>
       {children}
     </AuthContext.Provider>
   );
