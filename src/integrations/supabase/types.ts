@@ -16,29 +16,38 @@ export type Database = {
     Tables: {
       banned_users: {
         Row: {
+          appeal_deadline: string | null
+          appeal_submitted: boolean | null
           ban_type: string | null
           banned_at: string | null
           banned_by: string | null
           banned_by_username: string | null
           reason: string | null
+          suspended_until: string | null
           user_id: string
           wipe_date: string | null
         }
         Insert: {
+          appeal_deadline?: string | null
+          appeal_submitted?: boolean | null
           ban_type?: string | null
           banned_at?: string | null
           banned_by?: string | null
           banned_by_username?: string | null
           reason?: string | null
+          suspended_until?: string | null
           user_id: string
           wipe_date?: string | null
         }
         Update: {
+          appeal_deadline?: string | null
+          appeal_submitted?: boolean | null
           ban_type?: string | null
           banned_at?: string | null
           banned_by?: string | null
           banned_by_username?: string | null
           reason?: string | null
+          suspended_until?: string | null
           user_id?: string
           wipe_date?: string | null
         }
