@@ -214,6 +214,8 @@ const Forum = () => {
   const [allProfiles, setAllProfiles] = useState<Array<{ id: string; created_at: string }>>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isBanned, setIsBanned] = useState(false);
+  const [banInfo, setBanInfo] = useState<{ reason: string; banned_by_username: string; ban_type: string } | null>(null);
   
   // Full screen post view
   const [viewingPost, setViewingPost] = useState<Post | null>(null);
@@ -229,9 +231,23 @@ const Forum = () => {
 
   useEffect(() => {
     if (user) {
+      checkBanStatus();
       loadSections();
     }
   }, [user]);
+
+  const checkBanStatus = async () => {
+    const { data } = await supabase
+      .from('banned_users')
+      .select('reason, banned_by_username, ban_type')
+      .eq('user_id', user!.id)
+      .maybeSingle();
+    
+    if (data) {
+      setIsBanned(true);
+      setBanInfo(data);
+    }
+  };
 
   useEffect(() => {
     if (selectedSection) {
@@ -292,7 +308,11 @@ const Forum = () => {
       .select('*')
       .order('name');
 
-    if (!error && data) {
+    if (error) {
+      console.error('Error loading sections:', error);
+    }
+    
+    if (data) {
       setSections(data);
     }
 
@@ -621,6 +641,36 @@ const Forum = () => {
 
   if (!user) {
     return null;
+  }
+
+  // Banned user view
+  if (isBanned && banInfo) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Header />
+        <main className="flex-1 container mx-auto px-4 py-8 max-w-2xl flex flex-col items-center justify-center">
+          <div className="bg-card border border-destructive p-8 text-center">
+            <h1 className="text-2xl font-bold text-destructive mb-4">Account Banned</h1>
+            <p className="text-foreground mb-2">
+              Your account has been {banInfo.ban_type === 'permanent' ? 'permanently banned' : 'temporarily suspended'}.
+            </p>
+            <p className="text-muted-foreground mb-4">
+              Reason: {banInfo.reason}
+            </p>
+            <p className="text-sm text-muted-foreground mb-6">
+              Banned by: {banInfo.banned_by_username}
+            </p>
+            <a 
+              href="/support" 
+              className="text-primary hover:underline"
+            >
+              Contact Support to Appeal
+            </a>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
   }
 
   // Full screen post view

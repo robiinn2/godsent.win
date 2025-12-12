@@ -27,6 +27,8 @@ const Profile = () => {
   const [userRole, setUserRole] = useState<string>('user');
   const [postCount, setPostCount] = useState(0);
   const [sequentialId, setSequentialId] = useState<number>(0);
+  const [isBanned, setIsBanned] = useState(false);
+  const [banInfo, setBanInfo] = useState<{ reason: string; banned_by_username: string; ban_type: string } | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -36,11 +38,25 @@ const Profile = () => {
 
   useEffect(() => {
     if (user) {
+      checkBanStatus();
       loadProfile();
       loadPostCount();
       loadSequentialId();
     }
   }, [user]);
+
+  const checkBanStatus = async () => {
+    const { data } = await supabase
+      .from('banned_users')
+      .select('reason, banned_by_username, ban_type')
+      .eq('user_id', user!.id)
+      .maybeSingle();
+    
+    if (data) {
+      setIsBanned(true);
+      setBanInfo(data);
+    }
+  };
 
   const loadProfile = async () => {
     const { data: profileData } = await supabase
@@ -56,11 +72,18 @@ const Profile = () => {
     const { data: roleData } = await supabase
       .from('user_roles')
       .select('role')
-      .eq('user_id', user!.id)
-      .single();
+      .eq('user_id', user!.id);
 
-    if (roleData) {
-      setUserRole(roleData.role);
+    if (roleData && roleData.length > 0) {
+      // Get highest role: admin > elder > user
+      const roles = roleData.map(r => r.role);
+      if (roles.includes('admin')) {
+        setUserRole('admin');
+      } else if (roles.includes('elder')) {
+        setUserRole('elder');
+      } else {
+        setUserRole('user');
+      }
     }
   };
 
@@ -93,7 +116,51 @@ const Profile = () => {
     );
   }
 
-  if (!user || !profile) return null;
+  if (!user) {
+    return null;
+  }
+
+  // Banned user view
+  if (isBanned && banInfo) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Header />
+        <main className="flex-1 container mx-auto px-4 py-8 max-w-2xl flex flex-col items-center justify-center">
+          <div className="bg-card border border-destructive p-8 text-center">
+            <h1 className="text-2xl font-bold text-destructive mb-4">Account Banned</h1>
+            <p className="text-foreground mb-2">
+              Your account has been {banInfo.ban_type === 'permanent' ? 'permanently banned' : 'temporarily suspended'}.
+            </p>
+            <p className="text-muted-foreground mb-4">
+              Reason: {banInfo.reason}
+            </p>
+            <p className="text-sm text-muted-foreground mb-6">
+              Banned by: {banInfo.banned_by_username}
+            </p>
+            <a 
+              href="/support" 
+              className="text-primary hover:underline"
+            >
+              Contact Support to Appeal
+            </a>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Header />
+        <main className="flex-1 container mx-auto px-4 py-8 flex items-center justify-center">
+          <p className="text-muted-foreground">Loading profile...</p>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
