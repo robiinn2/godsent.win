@@ -473,6 +473,16 @@ export type Database = {
         Args: { p_invitation_code: string; p_user_id: string }
         Returns: undefined
       }
+      check_ban_status_by_username: {
+        Args: { p_username: string }
+        Returns: {
+          appeal_deadline: string
+          appeal_submitted: boolean
+          ban_type: string
+          reason: string
+          suspended_until: string
+        }[]
+      }
       get_email_by_username: { Args: { p_username: string }; Returns: string }
       has_role: {
         Args: {
@@ -482,6 +492,10 @@ export type Database = {
         Returns: boolean
       }
       is_banned: { Args: { _user_id: string }; Returns: boolean }
+      remove_expired_suspension_by_username: {
+        Args: { p_username: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "user" | "elder"
