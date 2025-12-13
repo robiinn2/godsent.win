@@ -34,23 +34,13 @@ const Login = () => {
   }, [user, navigate]);
 
   const checkBanStatus = async (usernameToCheck: string): Promise<BanInfo | null> => {
-    // Get user ID from username
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('username', usernameToCheck)
-      .maybeSingle();
+    // Use secure RPC to check ban status before login (bypasses RLS)
+    const { data, error } = await supabase
+      .rpc('check_ban_status_by_username', { p_username: usernameToCheck });
 
-    if (!profile) return null;
+    if (error || !data || data.length === 0) return null;
 
-    // Check if user is banned
-    const { data: banData } = await supabase
-      .from('banned_users')
-      .select('ban_type, reason, suspended_until, appeal_deadline, appeal_submitted')
-      .eq('user_id', profile.id)
-      .maybeSingle();
-
-    return banData;
+    return data[0] as BanInfo;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -220,7 +210,7 @@ const Login = () => {
             ) : (
               <div className="space-y-2">
                 <p className="text-destructive font-semibold">
-                  Account Banned
+                  Error: User banned
                 </p>
                 <p className="text-muted-foreground text-sm">
                   Reason: {banInfo.reason}
@@ -230,9 +220,8 @@ const Login = () => {
                     to="/support"
                     className="text-accent underline hover:text-accent/80"
                   >
-                    Contact Support
+                    Appeal here
                   </Link>
-                  {' '}to appeal.
                 </p>
               </div>
             )}
