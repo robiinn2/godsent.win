@@ -13,6 +13,7 @@ import Support from "./pages/Support";
 import Invite from "./pages/Invite";
 import Profile from "./pages/Profile";
 import UnbanAppeal from "./pages/UnbanAppeal";
+import Wheel from "./pages/Wheel";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="/invite" element={<Invite />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/unban-appeal" element={<UnbanAppeal />} />
+            <Route path="/wheel" element={<Wheel />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
