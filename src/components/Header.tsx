@@ -1,4 +1,4 @@
-import { LogOut } from "lucide-react";
+import { LogOut, Circle } from "lucide-react";
 import { NavLink } from "./NavLink";
 import { Button } from "./ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -65,6 +65,10 @@ const Header = ({ onLogoClick }: HeaderProps = {}) => {
                 
                 <NavLink to="/support" className="text-foreground hover:text-primary transition-colors">
                   Support
+                </NavLink>
+                
+                <NavLink to="/wheel" className="text-foreground hover:text-primary transition-colors">
+                  Wheel
                 </NavLink>
                 
                 {isAdmin && (
