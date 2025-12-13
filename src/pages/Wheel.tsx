@@ -137,12 +137,12 @@ const Wheel = () => {
       finalSegment = dudSegment >= WIN_INDEX ? dudSegment + 1 : dudSegment;
     }
 
-    // Calculate rotation so the TARGET segment lands at the TOP (under the pointer)
+    // Calculate rotation so the TARGET segment lands exactly at the TOP (under the pointer)
     const fullSpins = 5 + Math.floor(Math.random() * 3); // 5-7 full rotations
     const segmentCenterAngle = (finalSegment * SEGMENT_ANGLE) + (SEGMENT_ANGLE / 2);
     const targetRotation = 360 - segmentCenterAngle;
-    const extraOffset = (Math.random() - 0.5) * (SEGMENT_ANGLE * 0.6);
-    const totalRotation = rotation + (fullSpins * 360) + targetRotation + extraOffset;
+    // IMPORTANT: no random offset here, so visual landing always matches the hash result
+    const totalRotation = rotation + (fullSpins * 360) + targetRotation;
 
     setRotation(totalRotation);
 
