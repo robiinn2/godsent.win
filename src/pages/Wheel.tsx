@@ -6,7 +6,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Percent } from "lucide-react";
+
 
 const SEGMENTS = 20;
 const SEGMENT_ANGLE = 360 / SEGMENTS;
@@ -216,6 +216,11 @@ const Wheel = () => {
             {segments.map((segment, i) => {
               const midAngle = (i * SEGMENT_ANGLE) + (SEGMENT_ANGLE / 2);
               const isWin = segment.isWin;
+              // Calculate position near outer edge
+              const labelRadius = 135; // Distance from center (close to edge for 300px wheel)
+              const angleRad = (midAngle - 90) * (Math.PI / 180);
+              const labelX = 150 + labelRadius * Math.cos(angleRad);
+              const labelY = 150 + labelRadius * Math.sin(angleRad);
               
               return (
                 <div
@@ -231,14 +236,13 @@ const Wheel = () => {
                       background: "hsl(var(--border))",
                     }}
                   />
-                  {/* Segment label - centered in segment */}
+                  {/* Segment label - near outer edge */}
                   <div
-                    className="absolute text-[8px] md:text-[10px] font-bold"
+                    className="absolute text-[6px] md:text-[8px] font-bold whitespace-nowrap"
                     style={{
-                      top: "20%",
-                      left: "50%",
-                      transform: `rotate(${midAngle}deg) translateY(-50%)`,
-                      transformOrigin: "0 150px",
+                      left: `${(labelX / 300) * 100}%`,
+                      top: `${(labelY / 300) * 100}%`,
+                      transform: `translate(-50%, -50%) rotate(${midAngle}deg)`,
                       color: isWin ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))",
                       textShadow: isWin ? "0 0 10px hsl(var(--primary))" : "none",
                     }}
@@ -255,13 +259,21 @@ const Wheel = () => {
               style={{ boxShadow: "0 0 20px hsl(var(--primary) / 0.5)" }}
             >
               <span className="text-primary font-bold text-lg">gs.</span>
+            </div>
+          </div>
         </div>
 
-        {/* Chances Display */}
-        <div className="flex items-center gap-2 mb-6 text-muted-foreground">
-          <Percent className="h-4 w-4" />
-          <span className="text-sm">Win chance: <span className="text-primary font-bold">5%</span> (1 in 20)</span>
-        </div>
+        {/* Chances Legend */}
+        <div className="flex items-center justify-center gap-8 mb-6 border border-border px-6 py-3">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-muted-foreground" />
+            <span className="text-muted-foreground text-sm">DUD</span>
+            <span className="text-foreground text-sm font-bold">95%</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-primary" />
+            <span className="text-primary text-sm">WIN</span>
+            <span className="text-foreground text-sm font-bold">5%</span>
           </div>
         </div>
 
