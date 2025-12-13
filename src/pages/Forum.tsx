@@ -643,35 +643,9 @@ const Forum = () => {
     return null;
   }
 
-  // Banned user view
-  if (isBanned && banInfo) {
-    return (
-      <div className="min-h-screen flex flex-col bg-background">
-        <Header />
-        <main className="flex-1 container mx-auto px-4 py-8 max-w-2xl flex flex-col items-center justify-center">
-          <div className="bg-card border border-destructive p-8 text-center">
-            <h1 className="text-2xl font-bold text-destructive mb-4">Account Banned</h1>
-            <p className="text-foreground mb-2">
-              Your account has been {banInfo.ban_type === 'permanent' ? 'permanently banned' : 'temporarily suspended'}.
-            </p>
-            <p className="text-muted-foreground mb-4">
-              Reason: {banInfo.reason}
-            </p>
-            <p className="text-sm text-muted-foreground mb-6">
-              Banned by: {banInfo.banned_by_username}
-            </p>
-            <a 
-              href="/support" 
-              className="text-primary hover:underline"
-            >
-              Contact Support to Appeal
-            </a>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
+  // Banned user view is now handled on the login page via a small error box.
+  // Banned users will not see forum content due to RLS, but we no longer show a full-screen ban page here.
+
 
   // Full screen post view
   if (viewingPost) {
