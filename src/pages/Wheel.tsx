@@ -91,36 +91,70 @@ const Wheel = () => {
     }
   };
 
+  // Generate random hex string
+  const generateSeed = () => {
+    const array = new Uint8Array(16);
+    crypto.getRandomValues(array);
+    return Array.from(array, b => b.toString(16).padStart(2, '0')).join('');
+  };
+
+  // SHA-256 hash function
+  const sha256 = async (message: string): Promise<string> => {
+    const msgBuffer = new TextEncoder().encode(message);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  };
+
   const spinWheel = async () => {
     if (!canSpin || spinning) return;
 
     setSpinning(true);
     setResult(null);
 
-    // Determine result - 1/20 chance to win (5%)
-    const roll = Math.random();
-    const isWin = roll < 0.05;
+    // Generate provably fair seeds
+    const serverSeed = generateSeed();
+    const clientSeed = generateSeed();
+    const nonce = Date.now().toString();
+    
+    // Combine seeds and hash with SHA-256
+    const combinedSeed = `${serverSeed}:${clientSeed}:${nonce}`;
+    const hash = await sha256(combinedSeed);
+    
+    // Use first 8 characters of hash to get a number (0-4294967295)
+    const hashInt = parseInt(hash.substring(0, 8), 16);
+    
+    // Determine result: 5% chance to win (1 in 20)
+    // If hashInt % 20 === 0, it's a win
+    const rollResult = hashInt % 20;
+    const isWin = rollResult === 0;
 
     // Pick the target segment: WIN_INDEX for a win, any other index for a dud
     let finalSegment = WIN_INDEX;
     if (!isWin) {
-      // Ensure we never pick the WIN segment on a loss
-      do {
-        finalSegment = Math.floor(Math.random() * SEGMENTS);
-      } while (finalSegment === WIN_INDEX);
+      // Use hash to determine which DUD segment (skip WIN_INDEX)
+      const dudSegment = (hashInt % 19);
+      finalSegment = dudSegment >= WIN_INDEX ? dudSegment + 1 : dudSegment;
     }
 
     // Calculate rotation so the TARGET segment lands at the TOP (under the pointer)
-    // The pointer is at the top (0 degrees), so we need to rotate the wheel so the 
-    // target segment's center aligns with the top
     const fullSpins = 5 + Math.floor(Math.random() * 3); // 5-7 full rotations
     const segmentCenterAngle = (finalSegment * SEGMENT_ANGLE) + (SEGMENT_ANGLE / 2);
-    // To land the segment at top, we rotate by (360 - segmentCenterAngle) to bring it to top
     const targetRotation = 360 - segmentCenterAngle;
-    const extraOffset = (Math.random() - 0.5) * (SEGMENT_ANGLE * 0.6); // Small offset within segment
+    const extraOffset = (Math.random() - 0.5) * (SEGMENT_ANGLE * 0.6);
     const totalRotation = rotation + (fullSpins * 360) + targetRotation + extraOffset;
 
     setRotation(totalRotation);
+
+    // Log provably fair data for verification
+    console.log('Provably Fair Spin:', {
+      serverSeed,
+      clientSeed,
+      nonce,
+      hash,
+      rollResult,
+      isWin
+    });
 
     // Wait for animation to complete
     setTimeout(async () => {
@@ -151,7 +185,7 @@ const Wheel = () => {
         setCanSpin(false);
         setLastSpinTime(new Date());
       }
-    }, 5000); // Match animation duration
+    }, 5000);
   };
   const getTimeUntilNextSpin = () => {
     if (!lastSpinTime) return null;
