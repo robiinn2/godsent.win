@@ -8,38 +8,45 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 7%;
-    --foreground: 0 0% 100%;
+    --background: 210 20% 94%;
+    --foreground: 210 30% 20%;
 
-    --card: 0 0% 10%;
-    --card-foreground: 0 0% 100%;
+    --card: 210 30% 98%;
+    --card-foreground: 210 30% 20%;
 
-    --popover: 0 0% 10%;
-    --popover-foreground: 0 0% 100%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 30% 20%;
 
-    --primary: 0 0% 100%;
-    --primary-foreground: 0 0% 0%;
+    --primary: 210 60% 35%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 13%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 210 20% 88%;
+    --secondary-foreground: 210 30% 20%;
 
-    --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 55%;
+    --muted: 210 15% 85%;
+    --muted-foreground: 210 10% 45%;
 
-    --accent: 90 60% 50%;
-    --accent-foreground: 0 0% 0%;
+    --accent: 210 70% 45%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 60% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 18%;
-    --input: 0 0% 18%;
-    --ring: 0 0% 100%;
+    --border: 210 20% 75%;
+    --input: 210 20% 90%;
+    --ring: 210 60% 45%;
 
     --radius: 0rem;
 
-    --link: 0 0% 100%;
-    --link-hover: 0 0% 75%;
+    --link: 210 70% 40%;
+    --link-hover: 210 70% 30%;
+
+    /* Forum specific colors */
+    --forum-header: 210 40% 30%;
+    --forum-header-text: 0 0% 100%;
+    --forum-category: 210 30% 45%;
+    --forum-row-alt: 210 25% 92%;
+    --forum-row: 210 30% 96%;
   }
 }
 
@@ -56,10 +63,77 @@ All colors MUST be HSL.
 /* Top line */
 .skeet-top-line {
   height: 2px;
-  background: hsl(0 0% 100%);
+  background: linear-gradient(90deg, hsl(210 60% 35%), hsl(210 70% 50%));
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 9999;
+}
+
+/* Forum table styles */
+.forum-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.forum-header {
+  background: linear-gradient(180deg, hsl(210 40% 38%), hsl(210 40% 28%));
+  color: hsl(0 0% 100%);
+}
+
+.forum-header th {
+  padding: 8px 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  border: 1px solid hsl(210 30% 20%);
+}
+
+.forum-category {
+  background: linear-gradient(180deg, hsl(210 35% 55%), hsl(210 35% 45%));
+  color: hsl(0 0% 100%);
+}
+
+.forum-category td {
+  padding: 6px 12px;
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  border: 1px solid hsl(210 30% 35%);
+}
+
+.forum-row {
+  background: hsl(210 30% 96%);
+}
+
+.forum-row:nth-child(even) {
+  background: hsl(210 25% 92%);
+}
+
+.forum-row td {
+  padding: 10px 12px;
+  border: 1px solid hsl(210 20% 85%);
+  vertical-align: middle;
+}
+
+.forum-row:hover {
+  background: hsl(210 30% 88%);
+}
+
+.forum-link {
+  color: hsl(210 70% 35%);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.forum-link:hover {
+  color: hsl(210 70% 25%);
+  text-decoration: underline;
+}
+
+.forum-subtext {
+  color: hsl(210 10% 50%);
+  font-size: 11px;
 }
