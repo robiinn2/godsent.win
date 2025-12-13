@@ -67,10 +67,6 @@ const Header = ({ onLogoClick }: HeaderProps = {}) => {
                   Support
                 </NavLink>
                 
-                <NavLink to="/wheel" className="text-foreground hover:text-primary transition-colors">
-                  Wheel
-                </NavLink>
-                
                 {isAdmin && (
                   <NavLink 
                     to="/admin" 
