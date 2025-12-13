@@ -6,6 +6,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { Percent } from "lucide-react";
 
 const SEGMENTS = 20;
 const SEGMENT_ANGLE = 360 / SEGMENTS;
@@ -213,29 +214,31 @@ const Wheel = () => {
             }}
           >
             {segments.map((segment, i) => {
-              const startAngle = i * SEGMENT_ANGLE;
+              const midAngle = (i * SEGMENT_ANGLE) + (SEGMENT_ANGLE / 2);
               const isWin = segment.isWin;
               
               return (
                 <div
                   key={i}
                   className="absolute w-full h-full"
-                  style={{
-                    transform: `rotate(${startAngle}deg)`,
-                  }}
                 >
+                  {/* Segment divider line */}
                   <div
-                    className="absolute top-0 left-1/2 origin-bottom h-1/2 w-[2px]"
+                    className="absolute top-0 left-1/2 origin-bottom h-1/2 w-[1px]"
                     style={{
-                      background: isWin ? "hsl(var(--primary))" : "hsl(var(--border))",
+                      transform: `rotate(${i * SEGMENT_ANGLE}deg)`,
+                      transformOrigin: "bottom center",
+                      background: "hsl(var(--border))",
                     }}
                   />
+                  {/* Segment label - centered in segment */}
                   <div
-                    className="absolute text-[10px] md:text-xs font-bold"
+                    className="absolute text-[8px] md:text-[10px] font-bold"
                     style={{
-                      top: "15%",
+                      top: "20%",
                       left: "50%",
-                      transform: `translateX(-50%) rotate(${SEGMENT_ANGLE / 2}deg)`,
+                      transform: `rotate(${midAngle}deg) translateY(-50%)`,
+                      transformOrigin: "0 150px",
                       color: isWin ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))",
                       textShadow: isWin ? "0 0 10px hsl(var(--primary))" : "none",
                     }}
@@ -252,7 +255,13 @@ const Wheel = () => {
               style={{ boxShadow: "0 0 20px hsl(var(--primary) / 0.5)" }}
             >
               <span className="text-primary font-bold text-lg">gs.</span>
-            </div>
+        </div>
+
+        {/* Chances Display */}
+        <div className="flex items-center gap-2 mb-6 text-muted-foreground">
+          <Percent className="h-4 w-4" />
+          <span className="text-sm">Win chance: <span className="text-primary font-bold">5%</span> (1 in 20)</span>
+        </div>
           </div>
         </div>
 
