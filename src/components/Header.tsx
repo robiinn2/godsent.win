@@ -42,35 +42,34 @@ const Header = ({ onLogoClick }: HeaderProps = {}) => {
   };
 
   return (
-    <header className="bg-card border-b border-border">
-      <div className="container mx-auto px-4 py-4">
+    <header className="forum-header border-b-2 border-primary">
+      <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
           <NavLink 
             to={user ? "/forum" : "/"} 
-            className="text-2xl font-bold tracking-tight"
+            className="text-xl font-bold tracking-tight text-white"
             onClick={handleLogoClick}
           >
-            <span className="text-foreground">Godsent</span>
-            <span className="text-muted-foreground">.win</span>
+            Godsent.win
           </NavLink>
           
-          <nav className="flex items-center gap-4 md:gap-6">
+          <nav className="flex items-center gap-3 md:gap-5">
             {user ? (
               <>
                 <NotificationBell />
                 
-                <NavLink to="/forum" className="text-foreground hover:text-primary transition-colors">
+                <NavLink to="/forum" className="text-white/90 hover:text-white text-sm transition-colors">
                   Forum
                 </NavLink>
                 
-                <NavLink to="/support" className="text-foreground hover:text-primary transition-colors">
+                <NavLink to="/support" className="text-white/90 hover:text-white text-sm transition-colors">
                   Support
                 </NavLink>
                 
                 {isAdmin && (
                   <NavLink 
                     to="/admin" 
-                    className="text-foreground hover:text-primary transition-colors"
+                    className="text-white/90 hover:text-white text-sm transition-colors"
                   >
                     Admin
                   </NavLink>
@@ -79,7 +78,7 @@ const Header = ({ onLogoClick }: HeaderProps = {}) => {
                 {/* Profile Icon */}
                 <button
                   onClick={() => navigate('/profile')}
-                  className="w-8 h-8 rounded-full overflow-hidden border border-border hover:border-primary transition-colors"
+                  className="w-7 h-7 overflow-hidden border border-white/30 hover:border-white transition-colors"
                 >
                   <img 
                     src={pfpUrl || '/default-pfp.png'} 
@@ -92,23 +91,23 @@ const Header = ({ onLogoClick }: HeaderProps = {}) => {
                   variant="ghost" 
                   size="icon" 
                   onClick={signOut}
-                  className="hover:bg-secondary"
+                  className="text-white/80 hover:text-white hover:bg-white/10 h-7 w-7"
                 >
-                  <LogOut className="h-5 w-5" />
+                  <LogOut className="h-4 w-4" />
                 </Button>
               </>
             ) : (
               <>
                 <NavLink 
                   to="/register" 
-                  className="text-foreground hover:text-primary transition-colors"
+                  className="text-white/90 hover:text-white text-sm transition-colors"
                 >
                   Register
                 </NavLink>
                 
                 <NavLink 
                   to="/login" 
-                  className="text-foreground hover:text-primary transition-colors"
+                  className="text-white/90 hover:text-white text-sm transition-colors"
                 >
                   Login
                 </NavLink>

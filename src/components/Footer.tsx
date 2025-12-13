@@ -1,10 +1,8 @@
 const Footer = () => {
   return (
-    <footer className="mt-auto py-6 border-t border-border">
+    <footer className="mt-auto py-4 bg-forum-header text-white/80 text-center text-xs">
       <div className="container mx-auto px-4">
-        <p className="text-muted-foreground text-sm">
-          Godsent.win 2025
-        </p>
+        <p>Godsent.win © 2025 - All times are GMT</p>
       </div>
     </footer>
   );

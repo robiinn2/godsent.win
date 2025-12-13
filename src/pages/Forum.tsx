@@ -53,8 +53,8 @@ interface Reply {
 }
 
 const SECTION_CATEGORIES = {
-  'Information': ['announcements', 'questions'],
-  'Software': ['updates'],
+  'General': ['announcements', 'questions'],
+  'Downloads': ['updates'],
 };
 
 const getSectionIcon = (slug: string) => {
@@ -68,136 +68,6 @@ const getSectionIcon = (slug: string) => {
     default:
       return <MessageSquare className="w-4 h-4" />;
   }
-};
-
-// DVD-style bouncing shape component
-const BouncingShape = ({ 
-  children, 
-  initialX, 
-  initialY, 
-  speedX, 
-  speedY 
-}: { 
-  children: React.ReactNode; 
-  initialX: number; 
-  initialY: number; 
-  speedX: number; 
-  speedY: number; 
-}) => {
-  const [position, setPosition] = useState({ x: initialX, y: initialY });
-  const [velocity, setVelocity] = useState({ x: speedX, y: speedY });
-  const elementRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const animate = () => {
-      setPosition(prev => {
-        let newX = prev.x + velocity.x;
-        let newY = prev.y + velocity.y;
-        let newVelX = velocity.x;
-        let newVelY = velocity.y;
-
-        const maxX = window.innerWidth - 40;
-        const maxY = window.innerHeight - 40;
-
-        if (newX <= 0 || newX >= maxX) {
-          newVelX = -velocity.x;
-          newX = Math.max(0, Math.min(newX, maxX));
-        }
-        if (newY <= 0 || newY >= maxY) {
-          newVelY = -velocity.y;
-          newY = Math.max(0, Math.min(newY, maxY));
-        }
-
-        if (newVelX !== velocity.x || newVelY !== velocity.y) {
-          setVelocity({ x: newVelX, y: newVelY });
-        }
-
-        return { x: newX, y: newY };
-      });
-    };
-
-    const intervalId = setInterval(animate, 16);
-    return () => clearInterval(intervalId);
-  }, [velocity]);
-
-  return (
-    <div
-      ref={elementRef}
-      className="absolute"
-      style={{ 
-        left: position.x, 
-        top: position.y,
-        transition: 'none'
-      }}
-    >
-      {children}
-    </div>
-  );
-};
-
-// Floating shapes component with DVD-style bouncing
-const FloatingShapes = () => {
-  return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-      {/* Circles */}
-      <BouncingShape initialX={200} initialY={80} speedX={1.2} speedY={0.8}>
-        <div className="w-6 h-6 border border-muted-foreground/20 rounded-full" />
-      </BouncingShape>
-      <BouncingShape initialX={800} initialY={160} speedX={-0.9} speedY={1.1}>
-        <div className="w-8 h-8 border border-accent/30 rounded-full" />
-      </BouncingShape>
-      <BouncingShape initialX={80} initialY={240} speedX={1.0} speedY={-0.7}>
-        <div className="w-4 h-4 border border-muted-foreground/20 rounded-full" />
-      </BouncingShape>
-      <BouncingShape initialX={600} initialY={400} speedX={-1.1} speedY={-0.9}>
-        <div className="w-5 h-5 border border-muted-foreground/15 rounded-full" />
-      </BouncingShape>
-      <BouncingShape initialX={300} initialY={500} speedX={0.8} speedY={1.0}>
-        <div className="w-7 h-7 border border-accent/20 rounded-full" />
-      </BouncingShape>
-      
-      {/* Triangles */}
-      <BouncingShape initialX={160} initialY={128} speedX={0.7} speedY={1.2}>
-        <div className="w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[14px] border-b-muted-foreground/15" />
-      </BouncingShape>
-      <BouncingShape initialX={700} initialY={320} speedX={-1.0} speedY={0.6}>
-        <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[10px] border-b-accent/20" />
-      </BouncingShape>
-      <BouncingShape initialX={128} initialY={600} speedX={1.3} speedY={-0.8}>
-        <div className="w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-b-[16px] border-b-muted-foreground/10" />
-      </BouncingShape>
-      
-      {/* X marks */}
-      <BouncingShape initialX={64} initialY={192} speedX={0.9} speedY={0.7}>
-        <div className="text-destructive/30 text-lg font-bold">×</div>
-      </BouncingShape>
-      <BouncingShape initialX={900} initialY={450} speedX={-0.8} speedY={-1.0}>
-        <div className="text-destructive/25 text-xl font-bold">×</div>
-      </BouncingShape>
-      <BouncingShape initialX={950} initialY={300} speedX={-1.1} speedY={0.9}>
-        <div className="text-destructive/20 text-lg font-bold">×</div>
-      </BouncingShape>
-      
-      {/* Lines/dashes */}
-      <BouncingShape initialX={400} initialY={96} speedX={0.6} speedY={1.1}>
-        <div className="w-6 h-0.5 bg-muted-foreground/15 rotate-45" />
-      </BouncingShape>
-      <BouncingShape initialX={750} initialY={550} speedX={-0.7} speedY={-0.8}>
-        <div className="w-8 h-0.5 bg-muted-foreground/15 -rotate-12" />
-      </BouncingShape>
-      <BouncingShape initialX={48} initialY={400} speedX={1.0} speedY={0.5}>
-        <div className="w-5 h-0.5 bg-muted-foreground/10 rotate-12" />
-      </BouncingShape>
-      
-      {/* Play triangles */}
-      <BouncingShape initialX={950} initialY={200} speedX={-0.9} speedY={1.0}>
-        <div className="w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[10px] border-l-muted-foreground/20" />
-      </BouncingShape>
-      <BouncingShape initialX={350} initialY={480} speedX={0.8} speedY={-0.7}>
-        <div className="w-0 h-0 border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent border-l-[12px] border-l-accent/15" />
-      </BouncingShape>
-    </div>
-  );
 };
 
 const Forum = () => {
@@ -650,125 +520,157 @@ const Forum = () => {
   // Full screen post view
   if (viewingPost) {
     return (
-      <div className="min-h-screen flex flex-col bg-background relative">
-        <FloatingShapes />
+      <div className="min-h-screen flex flex-col bg-background">
         <Header onLogoClick={closePost} />
         
-        <main className="flex-1 container mx-auto px-4 py-8 max-w-4xl relative z-10">
-          {/* Original Post */}
-          <div className="bg-card border border-border mb-6">
-            <div className="flex">
-              {/* Left side - User info */}
-              <div className="w-32 md:w-48 flex-shrink-0 bg-secondary/50 p-4 flex flex-col items-center justify-start border-r border-border">
-                <div className="w-16 h-16 md:w-24 md:h-24 overflow-hidden border-2 border-border mb-3">
-                  <img 
-                    src={viewingPost.profiles.pfp_url || '/default-pfp.png'} 
-                    alt={viewingPost.profiles.username} 
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="text-center space-y-1 w-full">
-                  <p className="font-bold text-foreground text-sm truncate">{viewingPost.profiles.username}</p>
-                  <p className="text-xs text-muted-foreground">ID: #{viewingPost.authorSequentialId || getSequentialId(viewingPost.author_id)}</p>
-                  <p className={`text-xs font-semibold capitalize ${
-                    viewingPost.authorRole === 'admin' ? 'text-destructive' : 
-                    viewingPost.authorRole === 'elder' ? 'text-purple-500' : 
-                    'text-muted-foreground'
-                  }`}>{viewingPost.authorRole || 'user'}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Joined {new Date(viewingPost.profiles.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-              </div>
-              
-              {/* Right side - Post content */}
-              <div className="flex-1 p-4 flex flex-col">
-                <div className="mb-3 border-b border-border pb-3 flex items-start justify-between">
-                  <div>
-                    <h1 className="text-xl font-bold text-foreground">{viewingPost.title}</h1>
-                    <p className="text-xs text-muted-foreground">
-                      Posted {new Date(viewingPost.created_at).toLocaleString()}
-                    </p>
-                  </div>
-                  {(isAdmin || isElder) && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDeletePost(viewingPost.id)}
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  )}
-                </div>
-                <p className="text-foreground whitespace-pre-wrap mb-4">{viewingPost.content}</p>
-                
-                {/* File attachment */}
-                {viewingPost.file_url && viewingPost.file_name && (
-                  <a 
-                    href={viewingPost.file_url} 
-                    download={viewingPost.file_name}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-3 py-2 bg-secondary border border-border hover:bg-secondary/80 transition-colors w-fit"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span className="text-sm">{viewingPost.file_name}</span>
-                    {viewingPost.file_size && (
-                      <span className="text-xs text-muted-foreground">({formatFileSize(viewingPost.file_size)})</span>
-                    )}
-                  </a>
-                )}
-              </div>
-            </div>
+        <main className="flex-1 container mx-auto px-4 py-6 max-w-5xl">
+          {/* Thread header */}
+          <div className="forum-header mb-0">
+            <table className="forum-table">
+              <thead>
+                <tr>
+                  <th colSpan={2}>{viewingPost.title}</th>
+                </tr>
+              </thead>
+            </table>
           </div>
 
+          {/* Original Post */}
+          <table className="forum-table mb-4">
+            <tbody>
+              <tr className="forum-row">
+                {/* User info cell */}
+                <td className="w-40 align-top">
+                  <div className="flex flex-col items-center p-2">
+                    <div className="w-20 h-20 overflow-hidden border border-border mb-2">
+                      <img 
+                        src={viewingPost.profiles.pfp_url || '/default-pfp.png'} 
+                        alt={viewingPost.profiles.username} 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <p className="font-bold text-primary text-sm">{viewingPost.profiles.username}</p>
+                    <p className="text-xs text-muted-foreground">ID: #{viewingPost.authorSequentialId || getSequentialId(viewingPost.author_id)}</p>
+                    <p className={`text-xs font-semibold capitalize ${
+                      viewingPost.authorRole === 'admin' ? 'text-destructive' : 
+                      viewingPost.authorRole === 'elder' ? 'text-purple-600' : 
+                      'text-muted-foreground'
+                    }`}>{viewingPost.authorRole || 'user'}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Joined: {new Date(viewingPost.profiles.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                </td>
+                
+                {/* Post content cell */}
+                <td className="align-top">
+                  <div className="p-3">
+                    <div className="flex items-center justify-between border-b border-border pb-2 mb-3">
+                      <span className="text-xs text-muted-foreground">
+                        Posted: {new Date(viewingPost.created_at).toLocaleString()}
+                      </span>
+                      {(isAdmin || isElder) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeletePost(viewingPost.id)}
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10 h-6 px-2"
+                        >
+                          <Trash2 className="w-3 h-3 mr-1" />
+                          Delete
+                        </Button>
+                      )}
+                    </div>
+                    <div className="text-foreground whitespace-pre-wrap mb-4">{viewingPost.content}</div>
+                    
+                    {/* File attachment */}
+                    {viewingPost.file_url && viewingPost.file_name && (
+                      <a 
+                        href={viewingPost.file_url} 
+                        download={viewingPost.file_name}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-3 py-2 bg-secondary border border-border hover:bg-muted transition-colors text-sm"
+                      >
+                        <Download className="w-4 h-4" />
+                        <span>{viewingPost.file_name}</span>
+                        {viewingPost.file_size && (
+                          <span className="text-xs text-muted-foreground">({formatFileSize(viewingPost.file_size)})</span>
+                        )}
+                      </a>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
           {/* Replies Section */}
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold text-foreground mb-4">Replies ({replies.length})</h2>
-            
-            {replies.length === 0 ? (
-              <p className="text-muted-foreground text-sm">No replies yet</p>
-            ) : (
-              <div className="space-y-4">
-                {replies.map((reply) => (
-                  <div key={reply.id} className="bg-card border border-border">
-                    <div className="flex">
-                      {/* Left side - User info */}
-                      <div className="w-24 md:w-36 flex-shrink-0 bg-secondary/50 p-3 flex flex-col items-center justify-start border-r border-border">
-                        <div className="w-10 h-10 md:w-14 md:h-14 overflow-hidden border border-border mb-2">
+          <div className="forum-header">
+            <table className="forum-table">
+              <thead>
+                <tr>
+                  <th colSpan={2}>Replies ({replies.length})</th>
+                </tr>
+              </thead>
+            </table>
+          </div>
+          
+          <table className="forum-table mb-4">
+            <tbody>
+              {replies.length === 0 ? (
+                <tr className="forum-row">
+                  <td colSpan={2} className="text-center py-6 text-muted-foreground">
+                    No replies yet. Be the first to reply!
+                  </td>
+                </tr>
+              ) : (
+                replies.map((reply, index) => (
+                  <tr key={reply.id} className={index % 2 === 0 ? 'forum-row' : ''} style={index % 2 !== 0 ? { background: 'hsl(210 25% 92%)' } : {}}>
+                    <td className="w-40 align-top">
+                      <div className="flex flex-col items-center p-2">
+                        <div className="w-14 h-14 overflow-hidden border border-border mb-2">
                           <img 
                             src={reply.profiles.pfp_url || '/default-pfp.png'} 
                             alt={reply.profiles.username} 
                             className="w-full h-full object-cover"
                           />
                         </div>
-                        <div className="text-center space-y-0.5 w-full">
-                          <p className="font-bold text-foreground text-xs truncate">{reply.profiles.username}</p>
-                          <p className="text-[10px] text-muted-foreground">#{reply.authorSequentialId}</p>
-                          <p className={`text-[10px] font-semibold capitalize ${
-                            reply.authorRole === 'admin' ? 'text-destructive' : 
-                            reply.authorRole === 'elder' ? 'text-purple-500' : 
-                            'text-muted-foreground'
-                          }`}>{reply.authorRole || 'user'}</p>
-                        </div>
+                        <p className="font-bold text-primary text-xs">{reply.profiles.username}</p>
+                        <p className="text-[10px] text-muted-foreground">#{reply.authorSequentialId}</p>
+                        <p className={`text-[10px] font-semibold capitalize ${
+                          reply.authorRole === 'admin' ? 'text-destructive' : 
+                          reply.authorRole === 'elder' ? 'text-purple-600' : 
+                          'text-muted-foreground'
+                        }`}>{reply.authorRole || 'user'}</p>
                       </div>
-                      
-                      {/* Right side - Reply content */}
-                      <div className="flex-1 p-3">
-                        <p className="text-xs text-muted-foreground mb-2">
-                          {new Date(reply.created_at).toLocaleString()}
-                        </p>
+                    </td>
+                    <td className="align-top">
+                      <div className="p-3">
+                        <div className="border-b border-border pb-2 mb-2">
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(reply.created_at).toLocaleString()}
+                          </span>
+                        </div>
                         <p className="text-foreground text-sm whitespace-pre-wrap">{reply.content}</p>
                       </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
 
           {/* Reply Input */}
+          <div className="forum-header">
+            <table className="forum-table">
+              <thead>
+                <tr>
+                  <th>Quick Reply</th>
+                </tr>
+              </thead>
+            </table>
+          </div>
           <form onSubmit={handleSubmitReply} className="bg-card border border-border p-4">
             <div className="flex gap-3">
               <Textarea
@@ -776,10 +678,11 @@ const Forum = () => {
                 onChange={(e) => setNewReply(e.target.value)}
                 placeholder="Write a reply..."
                 rows={3}
-                className="bg-secondary flex-1"
+                className="bg-input flex-1"
               />
               <Button type="submit" disabled={submittingReply || !newReply.trim()} className="self-end">
-                <Send className="w-4 h-4" />
+                <Send className="w-4 h-4 mr-2" />
+                Reply
               </Button>
             </div>
           </form>
@@ -791,169 +694,227 @@ const Forum = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background relative">
-      <FloatingShapes />
+    <div className="min-h-screen flex flex-col bg-background">
       <Header />
       
-      <main className="flex-1 container mx-auto px-4 py-8 relative z-10">
-        <div className="flex gap-6">
-          {/* Memesense-style Sidebar */}
-          <div className="w-64 flex-shrink-0">
-            <div className="bg-card border border-border">
-              {/* All threads button */}
-              <button
-                onClick={() => setSelectedSection(null)}
-                className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors border-b border-border ${
-                  !selectedSection
-                    ? 'bg-secondary text-foreground'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-                }`}
-              >
-                <MessageSquare className="w-4 h-4" />
-                <span className="text-sm">All threads</span>
-              </button>
-              
-              {/* Category sections */}
-              {Object.entries(SECTION_CATEGORIES).map(([category, slugs]) => {
-                const categorySections = sections.filter(s => slugs.includes(s.slug));
-                if (categorySections.length === 0) return null;
-                
-                return (
-                  <div key={category}>
-                    <div className="px-4 py-2 border-b border-border">
-                      <p className="text-xs text-muted-foreground">
-                        {category}
-                      </p>
-                    </div>
-                    {categorySections.map((section) => (
-                      <button
-                        key={section.id}
-                        onClick={() => {
-                          setSelectedSection(section);
-                          setShowNewPost(false);
-                        }}
-                        className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors border-b border-border last:border-b-0 ${
-                          selectedSection?.id === section.id
-                            ? 'bg-secondary text-foreground'
-                            : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-                        }`}
-                      >
-                        {getSectionIcon(section.slug)}
-                        <span className="text-sm">{section.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+      <main className="flex-1 container mx-auto px-4 py-6">
+        {/* Forum Title Header */}
+        <div className="forum-header mb-0">
+          <table className="forum-table">
+            <thead>
+              <tr>
+                <th colSpan={4}>Godsent.win Forum</th>
+              </tr>
+            </thead>
+          </table>
+        </div>
 
-          {/* Posts Area */}
-          <div className="flex-1 min-w-0">
-            {selectedSection ? (
-              <div className="bg-card border border-border p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h2 className="text-xl font-bold text-foreground">{selectedSection.name}</h2>
-                    <p className="text-sm text-muted-foreground">{selectedSection.description}</p>
+        {/* Forum Sections Table */}
+        <table className="forum-table mb-6">
+          <thead className="forum-header">
+            <tr>
+              <th className="w-12"></th>
+              <th>Forum</th>
+              <th className="w-24 text-center">Threads</th>
+              <th className="w-48 text-right">Last Post</th>
+            </tr>
+          </thead>
+          <tbody>
+            {Object.entries(SECTION_CATEGORIES).map(([category, slugs]) => {
+              const categorySections = sections.filter(s => slugs.includes(s.slug));
+              if (categorySections.length === 0) return null;
+              
+              return (
+                <>
+                  {/* Category Header */}
+                  <tr key={`cat-${category}`} className="forum-category">
+                    <td colSpan={4}>{category}</td>
+                  </tr>
+                  
+                  {/* Section Rows */}
+                  {categorySections.map((section, idx) => (
+                    <tr 
+                      key={section.id} 
+                      className={`forum-row cursor-pointer`}
+                      onClick={() => {
+                        setSelectedSection(section);
+                        setShowNewPost(false);
+                      }}
+                    >
+                      <td className="text-center">
+                        <div className="flex items-center justify-center text-primary">
+                          {getSectionIcon(section.slug)}
+                        </div>
+                      </td>
+                      <td>
+                        <span className="forum-link font-semibold">{section.name}</span>
+                        {section.description && (
+                          <p className="forum-subtext mt-1">{section.description}</p>
+                        )}
+                      </td>
+                      <td className="text-center text-sm text-muted-foreground">
+                        -
+                      </td>
+                      <td className="text-right text-sm text-muted-foreground">
+                        -
+                      </td>
+                    </tr>
+                  ))}
+                </>
+              );
+            })}
+          </tbody>
+        </table>
+
+        {/* Selected Section Posts */}
+        {selectedSection && (
+          <>
+            <div className="forum-header mb-0">
+              <table className="forum-table">
+                <thead>
+                  <tr>
+                    <th className="flex items-center justify-between">
+                      <span>{selectedSection.name}</span>
+                      {(selectedSection.slug === 'questions' || (isAdmin && (selectedSection.slug === 'announcements' || selectedSection.slug === 'updates'))) && (
+                        <Button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowNewPost(!showNewPost);
+                          }}
+                          size="sm"
+                          variant={showNewPost ? "outline" : "default"}
+                          className="h-7"
+                        >
+                          {showNewPost ? 'Cancel' : 'New Thread'}
+                        </Button>
+                      )}
+                    </th>
+                  </tr>
+                </thead>
+              </table>
+            </div>
+
+            {showNewPost && (
+              <div className="bg-card border border-border p-4 mb-4">
+                <form onSubmit={handleCreatePost} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="title">Thread Title</Label>
+                    <Input
+                      id="title"
+                      value={newPostTitle}
+                      onChange={(e) => setNewPostTitle(e.target.value)}
+                      placeholder="Enter thread title"
+                      className="bg-input"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="content">Message</Label>
+                    <Textarea
+                      id="content"
+                      value={newPostContent}
+                      onChange={(e) => setNewPostContent(e.target.value)}
+                      placeholder="Enter your message"
+                      rows={5}
+                      className="bg-input"
+                    />
                   </div>
                   
-                  {(selectedSection.slug === 'questions' || (isAdmin && (selectedSection.slug === 'announcements' || selectedSection.slug === 'updates'))) && (
-                    <Button 
-                      onClick={() => setShowNewPost(!showNewPost)}
-                      variant={showNewPost ? "outline" : "default"}
-                    >
-                      {showNewPost ? 'Cancel' : 'New Post'}
-                    </Button>
-                  )}
-                </div>
-
-                {showNewPost && (
-                  <form onSubmit={handleCreatePost} className="space-y-4 mb-6 p-4 bg-secondary border border-border">
-                    <div className="space-y-2">
-                      <Label htmlFor="title">Title</Label>
-                      <Input
-                        id="title"
-                        value={newPostTitle}
-                        onChange={(e) => setNewPostTitle(e.target.value)}
-                        placeholder="Enter post title"
-                        className="bg-background"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="content">Content</Label>
-                      <Textarea
-                        id="content"
-                        value={newPostContent}
-                        onChange={(e) => setNewPostContent(e.target.value)}
-                        placeholder="Enter post content"
-                        rows={5}
-                        className="bg-background"
-                      />
-                    </div>
-                    
-                    {/* File attachment */}
-                    <div className="space-y-2">
-                      <Label>Attach File (optional)</Label>
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileSelect}
-                        className="hidden"
-                      />
-                      <div className="flex items-center gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => fileInputRef.current?.click()}
-                        >
-                          <Paperclip className="w-4 h-4 mr-2" />
-                          {selectedFile ? 'Change File' : 'Attach File'}
-                        </Button>
-                        {selectedFile && (
-                          <span className="text-sm text-muted-foreground">
-                            {selectedFile.name} ({formatFileSize(selectedFile.size)})
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <Button type="submit" disabled={submitting}>
-                      {submitting ? 'Creating...' : 'Create Post'}
-                    </Button>
-                  </form>
-                )}
-
-                <div className="space-y-1">
-                  {posts.length === 0 ? (
-                    <p className="text-muted-foreground py-8 text-center">No posts yet</p>
-                  ) : (
-                    posts.map((post) => (
-                      <button
-                        key={post.id}
-                        onClick={() => openPost(post)}
-                        className="w-full text-left px-4 py-3 bg-secondary border border-border hover:bg-secondary/70 transition-colors flex items-center gap-4"
+                  {/* File attachment */}
+                  <div className="space-y-2">
+                    <Label>Attach File (optional)</Label>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileSelect}
+                      className="hidden"
+                    />
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
                       >
-                        <span className="text-xs text-muted-foreground flex-shrink-0 w-24">
-                          {new Date(post.created_at).toLocaleDateString()}
+                        <Paperclip className="w-4 h-4 mr-2" />
+                        {selectedFile ? 'Change File' : 'Attach File'}
+                      </Button>
+                      {selectedFile && (
+                        <span className="text-sm text-muted-foreground">
+                          {selectedFile.name} ({formatFileSize(selectedFile.size)})
                         </span>
-                        <span className="text-foreground hover:underline truncate flex-1">{post.title}</span>
-                        <span className="text-xs text-muted-foreground flex-shrink-0">
-                          by {post.profiles.username}
-                        </span>
-                      </button>
-                    ))
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="bg-card border border-border p-6">
-                <h2 className="text-xl font-bold text-foreground mb-2">Welcome to the Forum</h2>
-                <p className="text-muted-foreground">Select a section from the sidebar to view posts</p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <Button type="submit" disabled={submitting}>
+                    {submitting ? 'Creating...' : 'Post New Thread'}
+                  </Button>
+                </form>
               </div>
             )}
+
+            <table className="forum-table">
+              <thead className="forum-header">
+                <tr>
+                  <th className="w-12"></th>
+                  <th>Thread</th>
+                  <th className="w-32 text-center">Author</th>
+                  <th className="w-32 text-right">Posted</th>
+                </tr>
+              </thead>
+              <tbody>
+                {posts.length === 0 ? (
+                  <tr className="forum-row">
+                    <td colSpan={4} className="text-center py-8 text-muted-foreground">
+                      No threads yet. Be the first to start a discussion!
+                    </td>
+                  </tr>
+                ) : (
+                  posts.map((post, idx) => (
+                    <tr 
+                      key={post.id} 
+                      className="forum-row cursor-pointer"
+                      onClick={() => openPost(post)}
+                    >
+                      <td className="text-center">
+                        <MessageSquare className="w-4 h-4 text-primary mx-auto" />
+                      </td>
+                      <td>
+                        <span className="forum-link">{post.title}</span>
+                      </td>
+                      <td className="text-center">
+                        <span className="text-sm text-primary">{post.profiles.username}</span>
+                      </td>
+                      <td className="text-right">
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(post.created_at).toLocaleDateString()}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+            
+            {/* Back button */}
+            <div className="mt-4">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setSelectedSection(null)}
+              >
+                ← Back to Forums
+              </Button>
+            </div>
+          </>
+        )}
+
+        {/* Welcome message when no section selected */}
+        {!selectedSection && (
+          <div className="bg-card border border-border p-6 text-center">
+            <p className="text-muted-foreground">Click on a forum section above to view threads</p>
           </div>
-        </div>
+        )}
       </main>
       
       <Footer />

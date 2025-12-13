@@ -51,6 +51,13 @@ export default {
           DEFAULT: "hsl(var(--link))",
           hover: "hsl(var(--link-hover))",
         },
+        forum: {
+          header: "hsl(var(--forum-header))",
+          "header-text": "hsl(var(--forum-header-text))",
+          category: "hsl(var(--forum-category))",
+          row: "hsl(var(--forum-row))",
+          "row-alt": "hsl(var(--forum-row-alt))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
