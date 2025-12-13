@@ -112,80 +112,84 @@ const Wheel = () => {
     setSpinning(true);
     setResult(null);
 
-    // Generate provably fair seeds
-    const serverSeed = generateSeed();
-    const clientSeed = generateSeed();
-    const nonce = Date.now().toString();
-    
-    // Combine seeds and hash with SHA-256
-    const combinedSeed = `${serverSeed}:${clientSeed}:${nonce}`;
-    const hash = await sha256(combinedSeed);
-    
-    // Use first 8 characters of hash to get a number (0-4294967295)
-    const hashInt = parseInt(hash.substring(0, 8), 16);
-    
-    // Determine result: 5% chance to win (1 in 20)
-    // If hashInt % 20 === 0, it's a win
-    const rollResult = hashInt % 20;
-    const isWin = rollResult === 0;
-
-    // Pick the target segment: WIN_INDEX for a win, any other index for a dud
-    let finalSegment = WIN_INDEX;
-    if (!isWin) {
-      // Use hash to determine which DUD segment (skip WIN_INDEX)
-      const dudSegment = (hashInt % 19);
-      finalSegment = dudSegment >= WIN_INDEX ? dudSegment + 1 : dudSegment;
-    }
-
-    // Calculate rotation so the TARGET segment lands exactly at the TOP (under the pointer)
-    const fullSpins = 5 + Math.floor(Math.random() * 3); // 5-7 full rotations
-    const segmentCenterAngle = (finalSegment * SEGMENT_ANGLE) + (SEGMENT_ANGLE / 2);
-    const targetRotation = 360 - segmentCenterAngle;
-    // IMPORTANT: no random offset here, so visual landing always matches the hash result
-    const totalRotation = rotation + (fullSpins * 360) + targetRotation;
-
-    setRotation(totalRotation);
-
-    // Log provably fair data for verification
-    console.log('Provably Fair Spin:', {
-      serverSeed,
-      clientSeed,
-      nonce,
-      hash,
-      rollResult,
-      isWin
-    });
-
-    // Wait for animation to complete
+    // Small delay before hashing to make it feel like it's "thinking"
     setTimeout(async () => {
-      const finalResult: "win" | "lose" = isWin ? "win" : "lose";
-      setResult(finalResult);
-
-      // Record the spin
-      await supabase.from("wheel_spins").insert({
-        user_id: user!.id,
-        result: finalResult,
+      // Generate provably fair seeds
+      const serverSeed = generateSeed();
+      const clientSeed = generateSeed();
+      const nonce = Date.now().toString();
+      
+      // Combine seeds and hash with SHA-256
+      const combinedSeed = `${serverSeed}:${clientSeed}:${nonce}`;
+      const hash = await sha256(combinedSeed);
+      
+      // Use first 8 characters of hash to get a number (0-4294967295)
+      const hashInt = parseInt(hash.substring(0, 8), 16);
+      
+      // Determine result: 5% chance to win (1 in 20)
+      // If hashInt % 20 === 0, it's a win
+      const rollResult = hashInt % 20;
+      const isWin = rollResult === 0;
+  
+      // Pick the target segment: WIN_INDEX for a win, any other index for a dud
+      let finalSegment = WIN_INDEX;
+      if (!isWin) {
+        // Use hash to determine which DUD segment (skip WIN_INDEX)
+        const dudSegment = hashInt % 19;
+        finalSegment = dudSegment >= WIN_INDEX ? dudSegment + 1 : dudSegment;
+      }
+  
+      // Calculate rotation so the TARGET segment lands exactly at the TOP (under the pointer)
+      const fullSpins = 5 + Math.floor(Math.random() * 3); // 5-7 full rotations
+      const segmentCenterAngle = (finalSegment * SEGMENT_ANGLE) + (SEGMENT_ANGLE / 2);
+      const targetRotation = 360 - segmentCenterAngle;
+      // IMPORTANT: no random offset here, so visual landing always matches the hash result
+      const totalRotation = rotation + (fullSpins * 360) + targetRotation;
+  
+      setRotation(totalRotation);
+  
+      // Log provably fair data for verification
+      console.log('Provably Fair Spin:', {
+        serverSeed,
+        clientSeed,
+        nonce,
+        hash,
+        rollResult,
+        isWin,
+        finalSegment,
       });
-
-      if (finalResult === "win") {
-        // Grant invite opportunity
-        await grantInviteOpportunity();
-        
-        // Create notification for user to create invite code
-        await supabase.from("notifications").insert({
+  
+      // Wait for animation to complete before revealing result / writing to DB
+      setTimeout(async () => {
+        const finalResult: "win" | "lose" = isWin ? "win" : "lose";
+        setResult(finalResult);
+  
+        // Record the spin
+        await supabase.from("wheel_spins").insert({
           user_id: user!.id,
-          type: "wheel_win",
-          title: "You won the wheel!",
-          message: "Congratulations! You won an invite code. Go to the Invite page to generate your code.",
+          result: finalResult,
         });
-      }
-
-      setSpinning(false);
-      if (!isAdmin) {
-        setCanSpin(false);
-        setLastSpinTime(new Date());
-      }
-    }, 5000);
+  
+        if (finalResult === "win") {
+          // Grant invite opportunity
+          await grantInviteOpportunity();
+          
+          // Create notification for user to create invite code
+          await supabase.from("notifications").insert({
+            user_id: user!.id,
+            type: "wheel_win",
+            title: "You won the wheel!",
+            message: "Congratulations! You won an invite code. Go to the Invite page to generate your code.",
+          });
+        }
+  
+        setSpinning(false);
+        if (!isAdmin) {
+          setCanSpin(false);
+          setLastSpinTime(new Date());
+        }
+      }, 5000); // match CSS animation duration
+    }, 800); // 0.8s hashing delay before the wheel starts
   };
   const getTimeUntilNextSpin = () => {
     if (!lastSpinTime) return null;
