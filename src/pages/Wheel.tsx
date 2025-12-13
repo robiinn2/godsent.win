@@ -5,7 +5,6 @@ import { useAuth } from "@/hooks/useAuth";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 
 
 const SEGMENTS = 20;
@@ -63,39 +62,33 @@ const Wheel = () => {
     }
   };
 
-  const generateInviteCode = async () => {
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    const generateGroup = () => {
-      let group = "";
-      for (let i = 0; i < 4; i++) {
-        group += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-      return group;
-    };
+  const grantInviteOpportunity = async () => {
+    // Check if user already has invite opportunity
+    const { data: existing } = await supabase
+      .from("user_invitations")
+      .select("id, invites_remaining")
+      .eq("user_id", user!.id)
+      .maybeSingle();
 
-    const key = `Godsent-${generateGroup()}-${generateGroup()}-${generateGroup()}-${generateGroup()}`;
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
-
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("username")
-      .eq("id", user!.id)
-      .single();
-
-    const { error } = await supabase.from("invitation_codes").insert({
-      key,
-      created_by: user!.id,
-      creator_username: profile?.username || "Unknown",
-      expires_at: expiresAt.toISOString(),
-    });
-
-    if (error) {
-      console.error("Error creating invite code:", error);
-      return null;
+    if (existing && existing.invites_remaining > 0) {
+      // Already has invites, just notify
+      return;
     }
 
-    return key;
+    if (existing) {
+      // Update existing record
+      await supabase
+        .from("user_invitations")
+        .update({ invites_remaining: 1, expiration_days: 7 })
+        .eq("user_id", user!.id);
+    } else {
+      // Create new invitation grant
+      await supabase.from("user_invitations").insert({
+        user_id: user!.id,
+        invites_remaining: 1,
+        expiration_days: 7,
+      });
+    }
   };
 
   const spinWheel = async () => {
@@ -133,15 +126,15 @@ const Wheel = () => {
       });
 
       if (finalResult === "win") {
-        const code = await generateInviteCode();
-        if (code) {
-          toast.success(`You won! Your invite code: ${code}`, {
-            duration: 10000,
-          });
-        }
-      } else {
-        toast.error("Nice try loser!", {
-          duration: 3000,
+        // Grant invite opportunity
+        await grantInviteOpportunity();
+        
+        // Create notification for user to create invite code
+        await supabase.from("notifications").insert({
+          user_id: user!.id,
+          type: "wheel_win",
+          title: "You won the wheel!",
+          message: "Congratulations! You won an invite code. Go to the Invite page to generate your code.",
         });
       }
 
@@ -243,8 +236,8 @@ const Wheel = () => {
                       left: `${(labelX / 300) * 100}%`,
                       top: `${(labelY / 300) * 100}%`,
                       transform: `translate(-50%, -50%) rotate(${midAngle}deg)`,
-                      color: isWin ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))",
-                      textShadow: isWin ? "0 0 10px hsl(var(--primary))" : "none",
+                      color: isWin ? "hsl(var(--foreground))" : "hsl(var(--muted-foreground))",
+                      textShadow: isWin ? "0 0 10px hsl(var(--foreground))" : "none",
                     }}
                   >
                     {segment.label}
@@ -271,16 +264,16 @@ const Wheel = () => {
             <span className="text-foreground text-sm font-bold">95%</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-primary" />
-            <span className="text-primary text-sm">WIN</span>
+            <div className="w-3 h-3 bg-foreground" />
+            <span className="text-foreground text-sm">WIN</span>
             <span className="text-foreground text-sm font-bold">5%</span>
           </div>
         </div>
 
         {/* Result Display */}
         {result && (
-          <div className={`mb-6 text-xl font-bold ${result === "win" ? "text-primary" : "text-destructive"}`}>
-            {result === "win" ? "🎉 YOU WON! Check your notifications!" : "Nice try loser!"}
+          <div className={`mb-6 text-xl font-bold ${result === "win" ? "text-foreground" : "text-destructive"}`}>
+            {result === "win" ? "Congrats! Check your notifications to create your invite code." : "Nice try loser!"}
           </div>
         )}
 
