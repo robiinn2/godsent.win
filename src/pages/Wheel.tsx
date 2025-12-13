@@ -238,67 +238,65 @@ const Wheel = () => {
           {/* Wheel */}
           <div 
             ref={wheelRef}
-            className="w-[300px] h-[300px] md:w-[400px] md:h-[400px] rounded-full border-4 border-primary relative overflow-hidden"
+            className="w-[300px] h-[300px] md:w-[400px] md:h-[400px] rounded-full border-4 border-primary relative"
             style={{
               transform: `rotate(${rotation}deg)`,
               transition: spinning 
                 ? "transform 5s cubic-bezier(0.17, 0.67, 0.12, 0.99)" 
                 : "none",
               boxShadow: "0 0 30px hsl(var(--primary) / 0.5)",
+              background: "hsl(var(--background))",
             }}
           >
-            {segments.map((segment, i) => {
-              const startAngle = i * SEGMENT_ANGLE;
-              const midAngle = startAngle + (SEGMENT_ANGLE / 2);
-              const endAngle = (i + 1) * SEGMENT_ANGLE;
-              const isWin = segment.isWin;
-              // Calculate position near outer edge for label
-              const labelRadius = 135;
-              const angleRad = (midAngle - 90) * (Math.PI / 180);
-              const labelX = 150 + labelRadius * Math.cos(angleRad);
-              const labelY = 150 + labelRadius * Math.sin(angleRad);
-              
-              return (
-                <div
-                  key={i}
-                  className="absolute w-full h-full"
-                  style={{ pointerEvents: "none" }}
-                >
-                  {/* WIN segment background - white pie slice */}
-                  {isWin && (
-                    <div
-                      className="absolute top-0 left-0 w-full h-full"
-                      style={{
-                        background: `conic-gradient(from ${startAngle - 90}deg, hsl(var(--foreground)) 0deg, hsl(var(--foreground)) ${SEGMENT_ANGLE}deg, transparent ${SEGMENT_ANGLE}deg)`,
-                        clipPath: "circle(50% at 50% 50%)",
-                      }}
+            {/* SVG wheel with segments */}
+            <svg viewBox="0 0 300 300" className="w-full h-full">
+              {segments.map((segment, i) => {
+                const startAngle = (i * SEGMENT_ANGLE - 90) * (Math.PI / 180);
+                const endAngle = ((i + 1) * SEGMENT_ANGLE - 90) * (Math.PI / 180);
+                const isWin = segment.isWin;
+                
+                // Calculate arc path
+                const x1 = 150 + 146 * Math.cos(startAngle);
+                const y1 = 150 + 146 * Math.sin(startAngle);
+                const x2 = 150 + 146 * Math.cos(endAngle);
+                const y2 = 150 + 146 * Math.sin(endAngle);
+                
+                // Path for segment
+                const pathD = `M 150 150 L ${x1} ${y1} A 146 146 0 0 1 ${x2} ${y2} Z`;
+                
+                // Calculate label position (near outer edge)
+                const midAngle = ((i * SEGMENT_ANGLE) + (SEGMENT_ANGLE / 2) - 90) * (Math.PI / 180);
+                const labelRadius = 120;
+                const labelX = 150 + labelRadius * Math.cos(midAngle);
+                const labelY = 150 + labelRadius * Math.sin(midAngle);
+                const textRotation = (i * SEGMENT_ANGLE) + (SEGMENT_ANGLE / 2);
+                
+                return (
+                  <g key={i}>
+                    {/* Segment fill (white for WIN, transparent for DUD) */}
+                    <path
+                      d={pathD}
+                      fill={isWin ? "hsl(var(--foreground))" : "transparent"}
+                      stroke="hsl(var(--border))"
+                      strokeWidth="1"
                     />
-                  )}
-                  {/* Segment divider line */}
-                  <div
-                    className="absolute top-0 left-1/2 origin-bottom h-1/2 w-[1px]"
-                    style={{
-                      transform: `rotate(${startAngle}deg)`,
-                      transformOrigin: "bottom center",
-                      background: "hsl(var(--border))",
-                    }}
-                  />
-                  {/* Segment label - near outer edge */}
-                  <div
-                    className="absolute text-[6px] md:text-[8px] font-bold whitespace-nowrap"
-                    style={{
-                      left: `${(labelX / 300) * 100}%`,
-                      top: `${(labelY / 300) * 100}%`,
-                      transform: `translate(-50%, -50%) rotate(${midAngle}deg)`,
-                      color: isWin ? "hsl(var(--background))" : "hsl(var(--muted-foreground))",
-                      textShadow: isWin ? "none" : "none",
-                    }}
-                  >
-                    {segment.label}
-                  </div>
-                </div>
-              );
-            })}
+                    {/* Segment label */}
+                    <text
+                      x={labelX}
+                      y={labelY}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      transform={`rotate(${textRotation}, ${labelX}, ${labelY})`}
+                      fill={isWin ? "hsl(var(--background))" : "hsl(var(--muted-foreground))"}
+                      fontSize="8"
+                      fontWeight="bold"
+                    >
+                      {segment.label}
+                    </text>
+                  </g>
+                );
+              })}
+            </svg>
             
             {/* Center circle */}
             <div 
