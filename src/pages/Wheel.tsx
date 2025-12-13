@@ -106,11 +106,15 @@ const Wheel = () => {
       ? (targetSegment + 1) % SEGMENTS 
       : targetSegment;
 
-    // Calculate rotation: multiple full spins + landing on target segment
+    // Calculate rotation so the TARGET segment lands at the TOP (under the pointer)
+    // The pointer is at the top (0 degrees), so we need to rotate the wheel so the 
+    // target segment's center aligns with the top
     const fullSpins = 5 + Math.floor(Math.random() * 3); // 5-7 full rotations
-    const segmentRotation = finalSegment * SEGMENT_ANGLE;
-    const extraOffset = Math.random() * (SEGMENT_ANGLE * 0.8); // Random offset within segment
-    const totalRotation = rotation + (fullSpins * 360) + segmentRotation + extraOffset;
+    const segmentCenterAngle = (finalSegment * SEGMENT_ANGLE) + (SEGMENT_ANGLE / 2);
+    // To land the segment at top, we rotate by (360 - segmentCenterAngle) to bring it to top
+    const targetRotation = 360 - segmentCenterAngle;
+    const extraOffset = (Math.random() - 0.5) * (SEGMENT_ANGLE * 0.6); // Small offset within segment
+    const totalRotation = rotation + (fullSpins * 360) + targetRotation + extraOffset;
 
     setRotation(totalRotation);
 
@@ -207,10 +211,12 @@ const Wheel = () => {
             }}
           >
             {segments.map((segment, i) => {
-              const midAngle = (i * SEGMENT_ANGLE) + (SEGMENT_ANGLE / 2);
+              const startAngle = i * SEGMENT_ANGLE;
+              const midAngle = startAngle + (SEGMENT_ANGLE / 2);
+              const endAngle = (i + 1) * SEGMENT_ANGLE;
               const isWin = segment.isWin;
-              // Calculate position near outer edge
-              const labelRadius = 135; // Distance from center (close to edge for 300px wheel)
+              // Calculate position near outer edge for label
+              const labelRadius = 135;
               const angleRad = (midAngle - 90) * (Math.PI / 180);
               const labelX = 150 + labelRadius * Math.cos(angleRad);
               const labelY = 150 + labelRadius * Math.sin(angleRad);
@@ -219,12 +225,23 @@ const Wheel = () => {
                 <div
                   key={i}
                   className="absolute w-full h-full"
+                  style={{ pointerEvents: "none" }}
                 >
+                  {/* WIN segment background - white pie slice */}
+                  {isWin && (
+                    <div
+                      className="absolute top-0 left-0 w-full h-full"
+                      style={{
+                        background: `conic-gradient(from ${startAngle - 90}deg, hsl(var(--foreground)) 0deg, hsl(var(--foreground)) ${SEGMENT_ANGLE}deg, transparent ${SEGMENT_ANGLE}deg)`,
+                        clipPath: "circle(50% at 50% 50%)",
+                      }}
+                    />
+                  )}
                   {/* Segment divider line */}
                   <div
                     className="absolute top-0 left-1/2 origin-bottom h-1/2 w-[1px]"
                     style={{
-                      transform: `rotate(${i * SEGMENT_ANGLE}deg)`,
+                      transform: `rotate(${startAngle}deg)`,
                       transformOrigin: "bottom center",
                       background: "hsl(var(--border))",
                     }}
@@ -236,8 +253,8 @@ const Wheel = () => {
                       left: `${(labelX / 300) * 100}%`,
                       top: `${(labelY / 300) * 100}%`,
                       transform: `translate(-50%, -50%) rotate(${midAngle}deg)`,
-                      color: isWin ? "hsl(var(--foreground))" : "hsl(var(--muted-foreground))",
-                      textShadow: isWin ? "0 0 10px hsl(var(--foreground))" : "none",
+                      color: isWin ? "hsl(var(--background))" : "hsl(var(--muted-foreground))",
+                      textShadow: isWin ? "none" : "none",
                     }}
                   >
                     {segment.label}
