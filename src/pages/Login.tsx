@@ -133,71 +133,7 @@ const Login = () => {
     return days;
   };
 
-  // Show ban/suspension message
-  if (banInfo) {
-    const isSuspended = banInfo.ban_type === 'suspended';
-    
-    return (
-      <div className="min-h-screen flex flex-col bg-background">
-        <Header />
-        <main className="flex-1 container mx-auto px-4 py-8 max-w-3xl">
-          <div className="border border-destructive bg-destructive/10 p-6">
-            <h1 className="text-2xl font-bold text-destructive mb-4">
-              {isSuspended ? 'Account Suspended' : 'Account Banned'}
-            </h1>
-            
-            {isSuspended && banInfo.suspended_until ? (
-              <div className="space-y-4">
-                <p className="text-foreground">
-                  <span className="font-semibold">Error:</span> User suspended for {formatSuspensionTime(banInfo.suspended_until)}
-                </p>
-                <p className="text-muted-foreground">
-                  <span className="font-semibold">Reason:</span> {banInfo.reason}
-                </p>
-                <p className="text-muted-foreground text-sm">
-                  Your account will be automatically restored on {new Date(banInfo.suspended_until).toLocaleDateString()}.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <p className="text-foreground">
-                  <span className="font-semibold">Error:</span> User banned - appeal{' '}
-                  <Link 
-                    to={`/unban-appeal?username=${encodeURIComponent(username)}`}
-                    className="text-accent underline hover:text-accent/80"
-                  >
-                    here
-                  </Link>
-                </p>
-                <p className="text-muted-foreground">
-                  <span className="font-semibold">Reason:</span> {banInfo.reason}
-                </p>
-                {banInfo.appeal_deadline && !banInfo.appeal_submitted && (
-                  <p className="text-destructive text-sm font-semibold">
-                    Warning: If no unban request is submitted within {formatAppealDeadline(banInfo.appeal_deadline)} days, your account will be terminated.
-                  </p>
-                )}
-                {banInfo.appeal_submitted && (
-                  <p className="text-accent text-sm">
-                    Your appeal has been submitted and is pending review.
-                  </p>
-                )}
-              </div>
-            )}
-            
-            <Button 
-              onClick={() => setBanInfo(null)} 
-              variant="outline" 
-              className="mt-6"
-            >
-              Back to Login
-            </Button>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
+  const isSuspended = banInfo?.ban_type === 'suspended';
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -259,6 +195,49 @@ const Login = () => {
             </div>
           </form>
         </div>
+
+        {/* Ban/Suspension Error Box */}
+        {banInfo && (
+          <div className="mt-4 border border-destructive bg-destructive/10 p-4">
+            {isSuspended && banInfo.suspended_until ? (
+              <div className="space-y-2">
+                <p className="text-destructive font-semibold">
+                  Account Suspended for {formatSuspensionTime(banInfo.suspended_until)}
+                </p>
+                <p className="text-muted-foreground text-sm">
+                  Reason: {banInfo.reason}
+                </p>
+                <p className="text-muted-foreground text-sm">
+                  Your account will be restored on {new Date(banInfo.suspended_until).toLocaleDateString()}.{' '}
+                  <Link 
+                    to="/support"
+                    className="text-accent underline hover:text-accent/80"
+                  >
+                    Contact Support
+                  </Link>
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-destructive font-semibold">
+                  Account Banned
+                </p>
+                <p className="text-muted-foreground text-sm">
+                  Reason: {banInfo.reason}
+                </p>
+                <p className="text-muted-foreground text-sm">
+                  <Link 
+                    to="/support"
+                    className="text-accent underline hover:text-accent/80"
+                  >
+                    Contact Support
+                  </Link>
+                  {' '}to appeal.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
         
         <div className="mt-4 text-center text-muted-foreground text-sm">
           Don't have an account?{" "}
