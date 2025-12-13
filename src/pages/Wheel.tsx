@@ -98,13 +98,17 @@ const Wheel = () => {
     setResult(null);
 
     // Determine result - 1/20 chance to win (5%)
-    const isWin = Math.random() < 0.05;
-    const targetSegment = isWin ? WIN_INDEX : Math.floor(Math.random() * SEGMENTS);
-    
-    // Skip the win segment if it's a loss
-    const finalSegment = !isWin && targetSegment === WIN_INDEX 
-      ? (targetSegment + 1) % SEGMENTS 
-      : targetSegment;
+    const roll = Math.random();
+    const isWin = roll < 0.05;
+
+    // Pick the target segment: WIN_INDEX for a win, any other index for a dud
+    let finalSegment = WIN_INDEX;
+    if (!isWin) {
+      // Ensure we never pick the WIN segment on a loss
+      do {
+        finalSegment = Math.floor(Math.random() * SEGMENTS);
+      } while (finalSegment === WIN_INDEX);
+    }
 
     // Calculate rotation so the TARGET segment lands at the TOP (under the pointer)
     // The pointer is at the top (0 degrees), so we need to rotate the wheel so the 
@@ -120,7 +124,7 @@ const Wheel = () => {
 
     // Wait for animation to complete
     setTimeout(async () => {
-      const finalResult = finalSegment === WIN_INDEX ? "win" : "lose";
+      const finalResult: "win" | "lose" = isWin ? "win" : "lose";
       setResult(finalResult);
 
       // Record the spin
@@ -149,7 +153,6 @@ const Wheel = () => {
       }
     }, 5000); // Match animation duration
   };
-
   const getTimeUntilNextSpin = () => {
     if (!lastSpinTime) return null;
     
